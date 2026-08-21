@@ -1,5 +1,1 @@
-{
-  "exec": "",
-  "teacherKey": "stage",
-  "note": "Apps Script 배포 후 exec 에 웹앱 URL을 넣는다. 비어 있으면 같은 기기 창 간 통신(BroadcastChannel)만 쓴다."
-}
+cd "/Volumes/T5 EVO/ai강의/260822_sketch_stage/ai-class_sketrch" && git add . && git commit -m "Connect Apps Script server (app.json exec)" && git push
