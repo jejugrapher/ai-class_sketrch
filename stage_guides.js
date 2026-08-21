@@ -57,26 +57,14 @@ var StageGuides = (function () {
       eye(440, 370, 16); eye(560, 370, 16);
       B(); M(470, 470); C(490, 490, 510, 490, 530, 470); S();                                   // 입
     },
-    /* 조개: 부채꼴 두 장, 방사상 줄 */
+    /* 조개(옆모습): 왼쪽 경첩, 위아래 껍데기 두 장. 위 껍데기가 열렸다 닫힌다 */
     clam: function () {
-      B(); M(500, 760); C(300, 700, 200, 520, 240, 380); C(300, 240, 700, 240, 760, 380); C(800, 520, 700, 700, 500, 760); S();
-      for (var i = -4; i <= 4; i++) { var a = i*0.22, x = 500 + Math.sin(a)*300, y = 740 - Math.cos(a)*430; B(); M(500, 750); C(500 + Math.sin(a)*120, 750 - Math.cos(a)*200, x - Math.sin(a)*30, y + Math.cos(a)*60, x, y); S(); }  // 방사상 줄
-      B(); M(420, 760); C(440, 790, 560, 790, 580, 760); C(560, 745, 440, 745, 420, 760); S();   // 꼭지(경첩)
-      B(); M(300, 330); C(400, 330, 600, 330, 700, 330); S();                                  // 성장선
-      B(); M(265, 450); C(400, 460, 600, 460, 735, 450); S();
-    },
-    /* 소라(제주 뿔소라): 나선 껍데기, 뿔, 입구 */
-    conch: function () {
-      // 몸통(큰 나선) — 달팽이 껍데기처럼 옆에서 본 모습
-      B(); M(300, 640); C(250, 520, 330, 330, 520, 300); C(700, 270, 800, 400, 780, 520); C(760, 660, 600, 720, 470, 690); C(400, 675, 340, 660, 300, 640); S();
-      B(); M(520, 300); C(640, 320, 700, 430, 660, 520); C(630, 590, 520, 600, 480, 540); C(450, 490, 500, 440, 550, 460); C(580, 480, 570, 520, 540, 515); S();   // 안쪽 나선
-      B(); M(520, 300); C(560, 230, 640, 190, 740, 170); C(760, 250, 770, 330, 780, 420); S();     // 뾰족한 꼭대기(나탑)
-      B(); M(600, 240); C(650, 300, 700, 360, 740, 420); S();
-      // 입구(아래 왼쪽)
-      B(); M(300, 640); C(240, 700, 280, 800, 400, 790); C(480, 785, 500, 740, 470, 690); S();
-      B(); M(320, 690); C(350, 740, 410, 760, 450, 740); S();
-      // 뿔(가시) — 제주 뿔소라
-      [[420, 320, 400, 250], [600, 285, 610, 205], [720, 360, 790, 330], [770, 520, 840, 540], [700, 640, 740, 710], [560, 700, 580, 770]].forEach(function (h) { B(); M(h[0]-18, h[1]+8); L(h[2], h[3]); L(h[0]+18, h[1]-8); S(); });
+      B(); M(250, 500); C(300, 300, 600, 230, 850, 330); C(900, 360, 900, 400, 860, 420); L(250, 500); S();   // 위 껍데기
+      B(); M(250, 500); C(300, 700, 600, 770, 850, 670); C(900, 640, 900, 600, 860, 580); L(250, 500); S();   // 아래 껍데기
+      for (var i = 1; i <= 5; i++) { var f = i/6; B(); M(250, 500); C(400 + f*100, 500 - f*260, 600 + f*100, 500 - f*200, 860 - Math.abs(f - 0.5)*80, 420 - f*70); S(); }
+      for (var j = 1; j <= 5; j++) { var g2 = j/6; B(); M(250, 500); C(400 + g2*100, 500 + g2*260, 600 + g2*100, 500 + g2*200, 860 - Math.abs(g2 - 0.5)*80, 580 + g2*70); S(); }
+      B(); M(230, 470); C(200, 480, 200, 520, 230, 530); S();                                       // 경첩
+      eye(700, 480, 10);
     },
     /* 뗏목: 통나무를 밧줄로 엮은 배, 노 */
     raft: function () {
@@ -151,6 +139,25 @@ var StageGuides = (function () {
       B(); M(100, 520); L(40, 520); S(); B(); M(40, 520); C(10, 480, 10, 560, 40, 520); C(70, 480, 70, 560, 40, 520); S();   // 프로펠러
       [[880, 360], [920, 300], [960, 240]].forEach(function (b, i) { B(); O(b[0], b[1], 12 + i*6); S(); });   // 거품
     },
+    /* 오징어: 왼쪽이 몸통(뾰족), 오른쪽에 다리. 다리가 물결친다 */
+    squid: function () {
+      B(); M(80, 500); C(150, 330, 380, 300, 560, 380); C(600, 400, 620, 440, 620, 500); C(620, 560, 600, 600, 560, 620); C(380, 700, 150, 670, 80, 500); S();
+      B(); M(120, 420); C(60, 330, 200, 300, 300, 360); S(); B(); M(120, 580); C(60, 670, 200, 700, 300, 640); S();
+      B(); E(680, 500, 70, 85); S();
+      eye(700, 470, 18);
+      [[430, -3], [455, -2], [480, -1], [505, 0], [530, 1], [555, 2], [580, 3]].forEach(function (a) { var y0 = 500 + a[1]*18; B(); M(740, y0); C(820, y0 + a[1]*10, 900, y0 + a[1]*25, 960, y0 + a[1]*30); S(); });
+      B(); M(745, 470); C(860, 430, 950, 360, 990, 330); S(); B(); O(985, 325, 12); S();
+      B(); M(745, 530); C(860, 570, 950, 640, 990, 670); S(); B(); O(985, 675, 12); S();
+    },
+    /* 문어: 둥근 머리 위, 다리 8개 아래. 다리가 꿈틀거리며 기어간다 */
+    octopus: function () {
+      B(); M(300, 480); C(280, 200, 720, 200, 700, 480); C(690, 520, 310, 520, 300, 480); S();
+      eye(420, 400, 22); eye(580, 400, 22); B(); M(470, 460); C(490, 480, 510, 480, 530, 460); S();
+      [[330, -1.0], [380, -0.6], [430, -0.25], [480, 0.05], [520, -0.05], [570, 0.25], [620, 0.6], [670, 1.0]].forEach(function (a, i) {
+        var x = a[0], d = a[1]; B(); M(x, 510); C(x + d*60, 620, x + d*140, 660, x + d*200 + (i%2 ? 20 : -20), 800); C(x + d*220, 830, x + d*260, 800, x + d*230, 770); S();
+        for (var k2 = 0; k2 < 3; k2++) { B(); O(x + d*(80 + k2*50), 640 + k2*55, 7); S(); }
+      });
+    },
     /* 돛단배 */
     sailboat: function () {
       B(); M(120, 640); C(140, 720, 220, 760, 320, 760); L(700, 760); C(820, 760, 900, 700, 930, 620); L(120, 640); S();   // 선체
@@ -182,54 +189,85 @@ var StageGuides = (function () {
       B(); M(640, 500); C(640, 640, 800, 640, 800, 500); S(); for (var i = 0; i < 4; i++) { B(); M(650 + i*40, 520); L(660 + i*40, 610); S(); B(); M(650, 540 + i*25); L(790, 540 + i*25); S(); } // 망사리
       B(); M(300, 480); L(260, 620); S(); B(); M(252, 620); L(270, 640); S();                    // 빗창
     },
-    /* 구덕을 진 어머니와 아이 */
-    mother: function () {
-      // 어머니
-      B(); O(380, 170, 60); S(); B(); M(330, 120); C(360, 80, 420, 80, 430, 130); S();            // 머리·머리수건
-      B(); M(340, 230); C(300, 250, 290, 360, 300, 520); L(460, 520); C(470, 360, 460, 250, 420, 230); S();   // 저고리·치마 윗부분
-      B(); M(290, 520); L(270, 760); L(490, 760); L(470, 520); S();                                 // 치마
-      B(); M(300, 600); L(480, 600); S(); B(); M(330, 300); L(430, 300); S();
-      B(); M(310, 260); L(250, 380); L(280, 400); S(); B(); M(450, 260); L(520, 330); S();
-      B(); M(420, 180); C(520, 150, 600, 200, 600, 300); L(590, 460); L(470, 460); L(460, 300); C(460, 240, 440, 220, 420, 230); S();   // 구덕(등에 진 바구니)
-      for (var i = 0; i < 5; i++) { B(); M(470, 300 + i*32); L(592, 300 + i*32); S(); }
-      B(); M(420, 200); C(400, 240, 430, 280, 470, 300); S();                                      // 멜빵
-      // 아이
-      B(); O(720, 330, 48); S();
-      B(); M(690, 380); C(660, 400, 660, 470, 665, 560); L(775, 560); C(780, 470, 780, 400, 750, 380); S();
-      B(); M(665, 560); L(655, 760); L(785, 760); L(775, 560); S(); B(); M(665, 640); L(785, 640); S();
-      B(); M(665, 400); L(630, 480); S(); B(); M(775, 400); L(800, 450); S();
-      B(); M(750, 340); C(820, 330, 860, 380, 860, 430); L(855, 530); L(780, 530); L(775, 430); C(775, 400, 765, 385, 750, 380); S();   // 작은 구덕
-      for (var j = 0; j < 3; j++) { B(); M(780, 440 + j*30); L(857, 440 + j*30); S(); }
-      eye(365, 175, 6); eye(400, 175, 6); eye(708, 330, 5); eye(735, 330, 5);
-    },
-    /* 물허벅: 물 긷는 항아리 (구덕에 담긴 모습) */
-    waterjar: function () {
-      B(); E(500, 170, 110, 32); S();                                                              // 주둥이
-      B(); M(390, 170); C(380, 210, 385, 240, 410, 260); C(270, 320, 210, 470, 250, 620); C(290, 790, 710, 790, 750, 620); C(790, 470, 730, 320, 590, 260); C(615, 240, 620, 210, 610, 170); S();  // 몸통
-      B(); M(410, 260); C(450, 275, 550, 275, 590, 260); S();                                      // 목 띠
-      B(); M(265, 400); C(380, 435, 620, 435, 735, 400); S();                                      // 배 줄
-      B(); M(250, 600); C(380, 640, 620, 640, 750, 600); S();
-      B(); M(330, 340); C(350, 300, 380, 290, 410, 300); S();                                      // 빛 반사
-      B(); M(300, 330); C(330, 150, 670, 150, 700, 330); S();                                      // 지는 끈(멜빵)
-      B(); M(290, 340); C(260, 400, 260, 520, 290, 640); S(); B(); M(710, 340); C(740, 400, 740, 520, 710, 640); S();
-    },
-    /* 북·장구·징 */
-    drums: function () {
-      // 북(가운데 큰 북, 받침)
-      B(); E(500, 430, 180, 200); S(); B(); E(500, 430, 130, 150); S();
-      for (var i = 0; i < 8; i++) { var a = i*Math.PI/4; B(); M(500 + Math.cos(a)*130, 430 + Math.sin(a)*150); L(500 + Math.cos(a)*180, 430 + Math.sin(a)*200); S(); }
-      B(); M(380, 630); L(320, 760); S(); B(); M(620, 630); L(680, 760); S(); B(); M(300, 760); L(700, 760); S();
-      B(); M(640, 300); L(740, 190); S(); B(); O(750, 180, 16); S();                                // 북채
-      // 장구(왼쪽)
-      B(); M(90, 380); C(90, 320, 270, 320, 270, 380); C(260, 430, 200, 440, 180, 470); L(180, 560); C(200, 590, 260, 600, 270, 650); C(270, 710, 90, 710, 90, 650); C(100, 600, 160, 590, 180, 560); L(180, 470); C(160, 440, 100, 430, 90, 380); S();
-      B(); E(180, 370, 90, 30); S(); B(); E(180, 660, 90, 30); S();
-      for (var j = 0; j < 5; j++) { B(); M(110 + j*35, 395); L(140 + j*20, 500); L(110 + j*35, 640); S(); }
-      // 징(오른쪽)
-      B(); O(830, 470, 130); S(); B(); O(830, 470, 70); S(); B(); O(830, 470, 20); S();
-      B(); M(760, 360); L(830, 280); L(900, 360); S(); B(); M(830, 280); L(830, 230); S();       // 손잡이 끈
-    }
   };
+
+  /* ═══ 움직임 리그: 도안 좌표(0~1000) 기준 부위 영역(box)과 관절(pivot) ═══
+     anim: 움직임 종류별 { amp(라디안), freq(Hz), phase, bias(기본 각), spin(초당 회전 라디안) }. base 는 나머지 전부.
+     faceLeft: 도안이 왼쪽을 본다 (엔진은 오른쪽 보는 그림 기준). noFlip: 방향 바뀌어도 안 뒤집음. pose.swim='horizontal': 물에서 몸을 눕힘 */
+  var RIGS = {
+    whale: { faceLeft: true, parts: [
+      { name: 'tail', box: [880, 300, 1000, 640], pivot: [895, 470], anim: { base: { amp: 0.22, freq: 1.6 } } },
+      { name: 'fin',  box: [460, 545, 620, 640], pivot: [475, 560], anim: { base: { amp: 0.18, freq: 1.2, phase: 1 } } } ] },
+    oarfish: { faceLeft: true, wave: 1.8, parts: [
+      { name: 'crest', box: [40, 240, 230, 470], pivot: [135, 470], anim: { base: { amp: 0.12, freq: 1.4 } } },
+      { name: 'streamer', box: [210, 585, 360, 800], pivot: [245, 585], anim: { base: { amp: 0.2, freq: 1.1, phase: 2 } } } ] },
+    crab: { noFlip: true, parts: [
+      { name: 'legL1', box: [120, 495, 300, 625], pivot: [290, 520], anim: { base: { amp: 0.22, freq: 4, phase: 0 } } },
+      { name: 'legL2', box: [110, 555, 300, 690], pivot: [280, 555], anim: { base: { amp: 0.22, freq: 4, phase: 1.6 } } },
+      { name: 'legL3', box: [100, 615, 300, 770], pivot: [270, 590], anim: { base: { amp: 0.22, freq: 4, phase: 3.1 } } },
+      { name: 'legL4', box: [90, 675, 300, 850], pivot: [260, 625], anim: { base: { amp: 0.22, freq: 4, phase: 4.7 } } },
+      { name: 'legR1', box: [700, 495, 880, 625], pivot: [710, 520], anim: { base: { amp: 0.22, freq: 4, phase: 1.6 } } },
+      { name: 'legR2', box: [700, 555, 890, 690], pivot: [720, 555], anim: { base: { amp: 0.22, freq: 4, phase: 3.1 } } },
+      { name: 'legR3', box: [700, 615, 900, 770], pivot: [730, 590], anim: { base: { amp: 0.22, freq: 4, phase: 4.7 } } },
+      { name: 'legR4', box: [700, 675, 910, 850], pivot: [740, 625], anim: { base: { amp: 0.22, freq: 4, phase: 0 } } },
+      { name: 'clawL', box: [110, 190, 340, 480], pivot: [330, 470], anim: { base: { amp: 0.12, freq: 1.3, phase: 0 } } },
+      { name: 'clawR', box: [660, 190, 890, 480], pivot: [670, 470], anim: { base: { amp: 0.12, freq: 1.3, phase: 2 } } } ] },
+    clam: { parts: [
+      { name: 'top', box: [190, 190, 930, 500], pivot: [250, 500], anim: { base: { amp: 0.12, freq: 0.5, bias: -0.12 }, clam: { amp: 0.3, freq: 1.2, bias: -0.3 } } } ] },
+    squid: { parts: [
+      { name: 'armsA', box: [735, 290, 1000, 470], pivot: [745, 480], anim: { base: { amp: 0.14, freq: 1.3, phase: 0 } } },
+      { name: 'armsB', box: [735, 470, 1000, 530], pivot: [745, 500], anim: { base: { amp: 0.1, freq: 1.3, phase: 1.5 } } },
+      { name: 'armsC', box: [735, 530, 1000, 710], pivot: [745, 520], anim: { base: { amp: 0.14, freq: 1.3, phase: 3 } } },
+      { name: 'finU', box: [40, 280, 320, 440], pivot: [200, 430], anim: { base: { amp: 0.15, freq: 2.2 } } },
+      { name: 'finD', box: [40, 560, 320, 720], pivot: [200, 570], anim: { base: { amp: 0.15, freq: 2.2, phase: 3.14 } } } ] },
+    octopus: { noFlip: true, parts: (function () {
+      var xs = [330, 380, 430, 480, 520, 570, 620, 670], ds = [-1, -0.6, -0.25, 0.05, -0.05, 0.25, 0.6, 1];
+      return xs.map(function (x, i) { var d = ds[i], x0 = Math.min(x - 40, x + d*280 - 40), x1 = Math.max(x + 40, x + d*280 + 40);
+        return { name: 'leg' + i, box: [x0, 505, x1, 870], pivot: [x, 505], anim: { base: { amp: 0.2, freq: 1.6 + (i%3)*0.3, phase: i*0.8 } } }; }); })() },
+    bird: { parts: [
+      { name: 'wingUp', box: [90, 210, 580, 480], pivot: [430, 475], anim: { base: { amp: 0.45, freq: 5 }, float: { amp: 0.1, freq: 1 }, paddle: { amp: 0.08, freq: 1 }, walk: { amp: 0.06, freq: 1 } } },
+      { name: 'wingDn', box: [200, 480, 580, 660], pivot: [400, 485], anim: { base: { amp: 0.3, freq: 5, phase: 3.14 }, float: { amp: 0.05, freq: 1 }, paddle: { amp: 0.05, freq: 1 }, walk: { amp: 0.04, freq: 1 } } },
+      { name: 'tail', box: [90, 540, 280, 660], pivot: [260, 590], anim: { base: { amp: 0.12, freq: 2 } } } ] },
+    person: { pose: { swim: 'horizontal' }, parts: [
+      { name: 'armL', box: [230, 310, 405, 495], pivot: [390, 335], anim: { walk: { amp: 0.35, freq: 2.2 }, swim: { amp: 0.9, freq: 1.4, phase: 0 }, base: { amp: 0.1, freq: 1 } } },
+      { name: 'armR', box: [605, 180, 810, 400], pivot: [625, 335], anim: { walk: { amp: 0.35, freq: 2.2, phase: 3.14 }, swim: { amp: 0.9, freq: 1.4, phase: 3.14 }, base: { amp: 0.25, freq: 3 } } },
+      { name: 'legL', box: [320, 545, 495, 820], pivot: [430, 550], anim: { walk: { amp: 0.4, freq: 2.2, phase: 3.14 }, swim: { amp: 0.2, freq: 3, phase: 0 }, base: { amp: 0, freq: 1 } } },
+      { name: 'legR', box: [505, 545, 680, 820], pivot: [570, 550], anim: { walk: { amp: 0.4, freq: 2.2, phase: 0 }, swim: { amp: 0.2, freq: 3, phase: 3.14 }, base: { amp: 0, freq: 1 } } } ] },
+    haenyeo: { pose: { swim: 'horizontal' }, dive: true, parts: [
+      { name: 'armL', box: [230, 310, 400, 500], pivot: [385, 335], anim: { walk: { amp: 0.3, freq: 2.2 }, swim: { amp: 0.9, freq: 1.2, phase: 0 }, base: { amp: 0.1, freq: 1 } } },
+      { name: 'armR', box: [510, 220, 870, 660], pivot: [625, 335], anim: { walk: { amp: 0.15, freq: 2.2, phase: 3.14 }, swim: { amp: 0.45, freq: 1.2, phase: 3.14 }, base: { amp: 0.1, freq: 1 } } },
+      { name: 'legL', box: [210, 565, 400, 800], pivot: [355, 560], anim: { walk: { amp: 0.35, freq: 2.2, phase: 3.14 }, swim: { amp: 0.25, freq: 2.6, phase: 0 }, base: { amp: 0, freq: 1 } } },
+      { name: 'legR', box: [470, 565, 660, 800], pivot: [510, 560], anim: { walk: { amp: 0.35, freq: 2.2, phase: 0 }, swim: { amp: 0.25, freq: 2.6, phase: 3.14 }, base: { amp: 0, freq: 1 } } } ] },
+    car: { faceLeft: true, parts: [
+      { name: 'wheelF', box: [200, 520, 360, 680], pivot: [280, 600], anim: { walk: { spin: 3 }, base: { spin: 0 } } },
+      { name: 'wheelB', box: [660, 520, 820, 680], pivot: [740, 600], anim: { walk: { spin: 3 }, base: { spin: 0 } } } ] },
+    submarine: { parts: [ { name: 'prop', box: [0, 465, 80, 575], pivot: [40, 520], anim: { base: { spin: 7 } } } ] },
+    airplane: { parts: [ { name: 'wingF', box: [450, 575, 720, 780], pivot: [600, 580], anim: { base: { amp: 0.03, freq: 2 } } } ] },
+    paperplane: {},
+    sailboat: { parts: [ { name: 'sail', box: [470, 120, 870, 615], pivot: [480, 610], anim: { base: { amp: 0.04, freq: 0.8 } } } ] },
+    raft: {}
+  };
+  /* 투명 영역을 잘라내고 잘린 위치를 돌려준다 → 리그 좌표 변환에 쓴다 */
+  function cropBox(src, pad) {
+    pad = pad || 4; var w = src.width, h = src.height, d = src.getContext('2d').getImageData(0, 0, w, h).data, minx = w, miny = h, maxx = -1, maxy = -1;
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) if (d[(y*w + x)*4 + 3] > 10) { if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+    if (maxx < 0) return null;
+    var ox = minx - pad, oy = miny - pad, o = document.createElement('canvas'); o.width = maxx - minx + pad*2 + 1; o.height = maxy - miny + pad*2 + 1;
+    o.getContext('2d').drawImage(src, ox, oy, o.width, o.height, 0, 0, o.width, o.height);
+    return { canvas: o, ox: ox, oy: oy };
+  }
+  /* 시험용: 도안을 색칠된 그림처럼 만들어 리그까지 붙여 돌려준다 */
+  function sample(name, color, size) {
+    size = size || 800; var cv = document.createElement('canvas'); cv.width = size; cv.height = size; var c = cv.getContext('2d');
+    if (!D[name]) return null;
+    // 색칠 흉내: 굵은 반투명 선을 먼저 깔고 그 위에 윤곽선
+    P = c; k = size/1000; c.save(); c.lineWidth = size*0.05; c.strokeStyle = color || '#f4a261'; c.lineCap = 'round'; c.lineJoin = 'round'; c.globalAlpha = 0.9; D[name](); c.restore();
+    P = c; c.save(); c.lineWidth = size*0.012; c.strokeStyle = '#333'; c.lineCap = 'round'; c.lineJoin = 'round'; D[name](); c.restore();
+    var cr = cropBox(cv); if (!cr) return null;
+    return { canvas: cr.canvas, rig: name, rigBox: { ox: cr.ox, oy: cr.oy, s: size/1000 } };
+  }
   return {
+    rigs: RIGS, cropBox: cropBox, sample: sample,
     names: Object.keys(D),
     draw: function (name, ctx, size, opts) {
       if (!D[name]) return false;

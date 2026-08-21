@@ -208,25 +208,23 @@
 /* ───────── 자료 ───────── */
 var NICKS = ['번개상어','무지개고래','용감한게','반짝별','바다친구','초록거북','노랑오리','하늘새','씩씩이','방글이','테우선장','해녀삼춘'];
 var EXHIBITS = [
-  { id:'whale',    ic:'🐋', nm:'참고래',       cat:'whale',   guide:'whale',    tags:['밤바다에서','별빛을 받으며','새끼와 함께','물 위로 뛰어오르며','천천히 헤엄치는','노래를 부르는'] },
-  { id:'oarfish',  ic:'🐟', nm:'산갈치',       cat:'fish',    guide:'oarfish',  tags:['은색으로 반짝이며','깊은 바다에서','리본처럼 춤추며','빨간 지느러미를 펄럭이며'] },
-  { id:'crab',     ic:'🦀', nm:'게',           cat:'crawler', guide:'crab',     tags:['옆으로 걸으며','바위 위에서','집게를 흔들며','모래 속에 숨어'] },
-  { id:'clam',     ic:'🐚', nm:'조개',         cat:'crawler', guide:'clam',     tags:['입을 벌렸다 닫으며','진주를 품고','모래 속에서','물을 뿜으며'] },
-  { id:'conch',    ic:'🐌', nm:'소라',         cat:'crawler', guide:'conch',    tags:['뿔을 세우고','바위를 기어가며','파도 소리를 담고','천천히'] },
-  { id:'raft',     ic:'🪵', nm:'뗏목',         cat:'boat',    guide:'raft',     tags:['노를 저으며','파도를 넘어','물고기를 싣고','친구를 태우고'] },
-  { id:'sailboat', ic:'⛵', nm:'돛단배',       cat:'boat',    guide:'sailboat', tags:['바람을 받아','멀리 떠나는','포구로 돌아오는','돛을 활짝 펴고'] },
-  { id:'haenyeo',  ic:'🤿', nm:'해녀',         cat:'person',  guide:'haenyeo',  tags:['숨을 참고','전복을 따며','태왁을 안고','물질하러 가는','휘파람 숨비소리'] },
-  { id:'mother',   ic:'👩‍👧', nm:'구덕 진 모자', cat:'person', guide:'mother',   tags:['장에 가는 길에','무거운 짐을 지고','웃으며','돌담길을 따라'] },
-  { id:'waterjar', ic:'🏺', nm:'물허벅',       cat:'heavy',   guide:'waterjar', tags:['물을 가득 담고','용천수 옆에서','출렁출렁','조심조심'] },
-  { id:'drums',    ic:'🥁', nm:'북·장구·징',    cat:'heavy',   guide:'drums',    tags:['둥둥 울리며','신나게','춤추듯이','다 같이'] },
-  { id:'bird',     ic:'🐦', nm:'새',           cat:'bird',    guide:'bird',     tags:['하늘 높이','날개를 펴고','바람을 타고','노래하며'] },
-  { id:'person',   ic:'🧒', nm:'사람',         cat:'person',  guide:'person',   tags:['손을 흔들며','달리는','헤엄치는','웃으며','춤추는'] },
-  { id:'car',      ic:'🚗', nm:'자동차',       cat:'vehicle', guide:'car',      tags:['빠르게 달리는','물속을 날아다니는','빵빵 경적을 울리며','반짝이는'] },
-  { id:'airplane', ic:'✈️', nm:'비행기',       cat:'aircraft', guide:'airplane', tags:['구름 위를 날며','하늘을 가르며','빙글 돌며','착륙하는'] },
-  { id:'paperplane', ic:'🛩️', nm:'종이비행기', cat:'light',   guide:'paperplane', tags:['바람에 실려','살랑살랑','멀리 날아가는','빙글 도는'] },
-  { id:'submarine', ic:'🚢', nm:'잠수함',      cat:'sub',     guide:'submarine', tags:['깊은 바다로','잠망경을 올리고','거품을 내며','조용히'] },
-  { id:'photo',    ic:'📷', nm:'사진 따라 그리기', cat:'fish', guide:null,      tags:['날아다니는','헤엄치는','뛰어오르는','걸어다니는','떠다니는','반짝이는'] },
-  { id:'free',     ic:'🎨', nm:'내 마음대로',   cat:'fish',    guide:null,       tags:['날아다니는','헤엄치는','뛰어오르는','반짝이는','커다란','아주 작은','웃고 있는'] }
+  { id:'whale',    nm:'참고래',   cat:'whale',   guide:'whale',    tags:['밤바다에서','별빛을 받으며','새끼와 함께','물 위로 뛰어오르며','천천히 헤엄치는','노래를 부르는'] },
+  { id:'oarfish',  nm:'산갈치',   cat:'fish',    guide:'oarfish',  tags:['은색으로 반짝이며','깊은 바다에서','리본처럼 춤추며','빨간 지느러미를 펄럭이며'] },
+  { id:'crab',     nm:'게',       cat:'crawler', guide:'crab',     tags:['옆으로 걸으며','바위 위에서','집게를 흔들며','모래 속에 숨어'] },
+  { id:'clam',     nm:'조개',     cat:'clam',    guide:'clam',     tags:['입을 벌렸다 닫으며','진주를 품고','통통 튀며','물을 뿜으며'] },
+  { id:'squid',    nm:'오징어',   cat:'fish',    guide:'squid',    tags:['먹물을 뿜으며','다리를 흔들며','쓩 하고 빠르게','반짝이며'] },
+  { id:'octopus',  nm:'문어',     cat:'crawler', guide:'octopus',  tags:['다리 여덟 개로','바위 틈에 숨어','꿈틀꿈틀','색을 바꾸며'] },
+  { id:'haenyeo',  nm:'해녀',     cat:'person',  guide:'haenyeo',  tags:['숨을 참고','전복을 따며','태왁을 안고','물질하러 가는','휘파람 숨비소리'] },
+  { id:'person',   nm:'사람',     cat:'person',  guide:'person',   tags:['손을 흔들며','달리는','헤엄치는','웃으며','춤추는'] },
+  { id:'bird',     nm:'새',       cat:'bird',    guide:'bird',     tags:['하늘 높이','날개를 펴고','바람을 타고','노래하며'] },
+  { id:'raft',     nm:'뗏목',     cat:'boat',    guide:'raft',     tags:['노를 저으며','파도를 넘어','물고기를 싣고','친구를 태우고'] },
+  { id:'sailboat', nm:'돛단배',   cat:'boat',    guide:'sailboat', tags:['바람을 받아','멀리 떠나는','포구로 돌아오는','돛을 활짝 펴고'] },
+  { id:'car',      nm:'자동차',   cat:'vehicle', guide:'car',      tags:['빠르게 달리는','물속을 날아다니는','빵빵 경적을 울리며','반짝이는'] },
+  { id:'airplane', nm:'비행기',   cat:'aircraft', guide:'airplane', tags:['구름 위를 날며','하늘을 가르며','빙글 돌며','착륙하는'] },
+  { id:'paperplane', nm:'종이비행기', cat:'light', guide:'paperplane', tags:['바람에 실려','살랑살랑','멀리 날아가는','빙글 도는'] },
+  { id:'submarine', nm:'잠수함',  cat:'sub',     guide:'submarine', tags:['깊은 바다로','잠망경을 올리고','거품을 내며','조용히'] },
+  { id:'photo',    ic:'📷', nm:'사진 따라 그리기', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','걸어다니는','떠다니는','반짝이는'] },
+  { id:'free',     ic:'🎨', nm:'내 마음대로', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','반짝이는','커다란','아주 작은','웃고 있는'] }
 ];
 var COMMON_TAGS = ['친구와 함께','신나게 춤추며','씨름을 하며','빙글빙글 돌며'];
 var WORLD_TAGS = ['용암이 흐르는','무지개가 뜬','별이 가득한','파도가 치는','돌담이 있는','눈이 내리는','사탕으로 만든','아주 깊은'];
@@ -242,6 +240,13 @@ StageBus.on(function (m) {
   if (m.type === 'allow') { allow = m.allow; localStorage.setItem('teacherAllow', JSON.stringify(allow)); applyAllow(); }
   if (m.type === 'wipe') { Object.keys(localStorage).filter(function (k) { return k.indexOf('kid_') === 0; }).forEach(function (k) { localStorage.removeItem(k); }); if (seat) { load(); renderHome(); } }
   if (m.type === 'defineWorld' && m.show) { gallery[m.id] = m; }
+  if (m.type === 'removeItem') {                 // 강사가 지운 그림: 보관함에서도 뺀다
+    Object.keys(localStorage).filter(function (key) { return key.indexOf('kid_') === 0; }).forEach(function (key) {
+      var st = JSON.parse(localStorage.getItem(key) || '{"items":[]}'); var n = st.items.length;
+      st.items = st.items.filter(function (i) { return i.id !== m.id; }); if (st.items.length !== n) localStorage.setItem(key, JSON.stringify(st));
+    });
+    if (seat) { load(); renderHome(); if (miniEngine) miniEngine.removeSprite(m.id); }
+  }
 });
 var gallery = {};
 
@@ -397,22 +402,20 @@ document.getElementById('optAi').onclick = function () {
 /* 그림 → 무대용 이미지(투명 PNG). 사진이면 흰 배경 오려내기 */
 function spriteFromCanvas() {
   var src = P.canvas;
-  if (P.photo) return miniEngine.cutout(src, 512);
-  var d = src.getContext('2d').getImageData(0, 0, src.width, src.height).data, minx = 800, miny = 800, maxx = -1, maxy = -1;
-  for (var y = 0; y < 800; y++) for (var x = 0; x < 800; x++) if (d[(y*800 + x)*4 + 3] > 10) { if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
-  if (maxx < 0) return null;
-  var o = document.createElement('canvas'); o.width = maxx - minx + 9; o.height = maxy - miny + 9; o.getContext('2d').drawImage(src, minx - 4, miny - 4, o.width, o.height, 0, 0, o.width, o.height);
-  return o;
+  if (P.photo) { var cut = miniEngine.cutout(src, 512); return cut ? { canvas: cut, rigBox: null } : null; }
+  var cr = StageGuides.cropBox(src, 4); if (!cr) return null;
+  return { canvas: cr.canvas, rigBox: (curEx && curEx.guide && !traceMode) ? { ox: cr.ox, oy: cr.oy, s: 0.8 } : null };   // 도안 좌표(1000) → 그림판(800)
 }
-function finishSprite(canvas, how) {
-  var desc = document.getElementById('desc').value.trim();
-  result = { id: 'k' + seat + '_' + Date.now(), kind: 'sprite', seat: seat, nick: nick, cat: curEx.cat, catName: curEx.nm, desc: desc, abil: miniEngine.parseAbilities(desc), dataUrl: canvas.toDataURL('image/png'), how: how, sent: false };
+function finishSprite(r, how) {
+  var canvas = r.canvas || r, desc = document.getElementById('desc').value.trim();
+  result = { id: 'k' + seat + '_' + Date.now(), kind: 'sprite', seat: seat, nick: nick, cat: curEx.cat, catName: curEx.nm, desc: desc, abil: miniEngine.parseAbilities(desc), dataUrl: canvas.toDataURL('image/png'), how: how, sent: false,
+             rig: (r.rigBox && curEx.guide) ? curEx.guide : null, rigBox: r.rigBox || null };
   document.getElementById('resultImg').src = result.dataUrl;
   document.getElementById('resultBox').style.display = '';
   store.items.push(result); save();
   document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
 }
-document.getElementById('rawBtn').onclick = function () { if (P.isEmpty()) { msg('drawMsg', '먼저 그림을 그려요', 'no'); return; } var cv = spriteFromCanvas(); if (cv) finishSprite(cv, 'raw'); };
+document.getElementById('rawBtn').onclick = function () { if (P.isEmpty()) { msg('drawMsg', '먼저 그림을 그려요', 'no'); return; } var r = spriteFromCanvas(); if (r) finishSprite(r, 'raw'); };
 document.getElementById('aiBtn').onclick = function () {
   if (P.isEmpty()) { msg('drawMsg', '먼저 그림을 그려요', 'no'); return; }
   var desc = document.getElementById('desc').value.trim();
@@ -425,7 +428,7 @@ document.getElementById('aiBtn').onclick = function () {
 };
 /* 서버 연결 전: null. Code.gs 단계에서 Gemini 호출로 교체 */
 function aiTransform(dataUrl, desc, ex) { return Promise.resolve(null); }
-function sendSprite(it) { StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, dataUrl: it.dataUrl, transparent: true }); it.sent = true; save(); }
+function sendSprite(it) { StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, dataUrl: it.dataUrl, transparent: true }); it.sent = true; save(); }
 document.getElementById('sendSprite').onclick = function () { sendSprite(result); msg('drawMsg', '무대로 보냈어요! 프로젝터를 봐요 👀', 'ok'); renderHome(); setTimeout(function () { show('pHome'); }, 1200); };
 document.getElementById('keepSprite').onclick = function () { renderHome(); show('pHome'); };
 
@@ -496,7 +499,7 @@ function renderStageItems() {
   var box = document.getElementById('stageItems'); box.innerHTML = '';
   store.items.filter(function (i) { return i.kind === 'sprite'; }).forEach(function (it) {
     var d = document.createElement('div'); d.className = 'item'; d.innerHTML = '<img src="' + it.dataUrl + '"><p>' + (it.desc || it.catName) + '<br><b>눌러서 올리기</b></p>';
-    d.onclick = function () { var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); miniEngine.add(c, { seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil }); }; im.src = it.dataUrl; };
+    d.onclick = function () { var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); miniEngine.add(c, { seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox }); }; im.src = it.dataUrl; };
     box.appendChild(d);
   });
   if (!store.items.some(function (i) { return i.kind === 'sprite'; })) box.innerHTML = '<p class="small">아직 그림이 없어요. 그림 만들기에서 먼저 그려요.</p>';

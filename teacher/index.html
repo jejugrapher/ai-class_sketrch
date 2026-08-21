@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../gate.js"></script>
 <title>Sketch Stage — Teacher</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -35,6 +36,11 @@
   .seat { background:#eef2f7; border-radius:8px; padding:8px; font-size:13px; text-align:center; }
   .seat b { display:block; font-size:16px; }
   .full { grid-column: 1 / -1; }
+  .gal { display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:10px; }
+  .gi { background:#fafbfc; border:2px solid #e6ebf2; border-radius:10px; overflow:hidden; }
+  .gi img { width:100%; aspect-ratio:1; object-fit:contain; background:#fff; display:block; }
+  .gi p { margin:0; padding:6px 8px; font-size:12px; line-height:1.35; min-height:34px; }
+  .gi button { width:100%; border-radius:0; background:#fee2e2; color:#b91c1c; font-size:13px; padding:7px; }
   .muted { color:#667; font-size:13px; }
 </style>
 </head>
@@ -44,11 +50,15 @@
   <span class="st" id="status">프로젝터: 연결 대기</span>
   <button class="blue" id="openStage">프로젝터 창 열기</button>
 </header>
+<div style="display:flex;gap:14px;align-items:center;padding:10px 18px;background:#fff;border-bottom:1px solid #e6ebf2">
+  <img src="../assets/qr_kid.png" style="width:72px;height:72px">
+  <div style="font-size:14px;line-height:1.5"><b>아이 화면 주소</b><br><a href="../kid/" target="_blank">https://jejugrapher.github.io/ai-class_sketrch/kid/</a><br><span class="muted">프로젝터에는 처음에 이 QR이 크게 나옵니다. [QR 보이기 / 숨기기]로 다시 띄울 수 있습니다.</span></div>
+</div>
 <main>
   <section>
     <h2>무대 공간</h2>
     <div class="worlds" id="worlds">
-      <div class="card w on" data-w="sea"><div class="ph">🌊</div><p><b>제주 바다</b>참고래·산갈치·해녀·테우</p></div>
+      <div class="card w on" data-w="sea"><div class="ph">🌊</div><p><b>제주 바다</b>참고래·산갈치·해녀·뗏목</p></div>
       <div class="card w" data-w="village"><div class="ph">🏝️</div><p><b>옛 포구 마을</b>초가·돌담·돛단배</p></div>
       <div class="card w" data-w="night"><div class="ph">🌙</div><p><b>마법의 밤</b>별자리·반딧불이, 규칙 없음</p></div>
     </div>
@@ -68,13 +78,14 @@
       <button id="bAuto">자동 놀이: 켬</button>
       <button id="bDemo">예시 넣기</button>
       <button id="bSound">프로젝터 소리 켜기</button>
+      <button class="blue" id="bQr">QR 보이기 / 숨기기</button>
     </div>
     <h2 style="margin-top:14px">정리</h2>
     <div class="row">
       <button id="bClear">무대 비우기</button>
-      <button class="danger" id="bWipe">전체 지우기</button>
+      <button class="danger" id="bWipe">수업 끝 · 전체 초기화</button>
     </div>
-    <p class="muted">무대 비우기: 프로젝터의 그림만 내립니다. 아이들 보관함은 남습니다.<br>전체 지우기: 오늘 것 전부 삭제. "지움"이라고 입력해야 실행됩니다.</p>
+    <p class="muted">무대 비우기: 프로젝터의 그림만 내립니다. 아이들 보관함은 남습니다.<br>전체 초기화: 오늘 올라온 그림·배경 전부 삭제(프로젝터·강사 화면·아이 보관함). "지움"이라고 입력해야 실행됩니다. 매일 수업이 끝나면 누릅니다.</p>
   </section>
 
   <section>
@@ -89,6 +100,11 @@
     </div>
   </section>
 
+  <section class="full">
+    <h2>올라온 그림 <span class="muted" id="galCount"></span></h2>
+    <p class="muted">아이들이 무대로 보낸 그림입니다. 올리면 안 되는 그림은 [삭제] — 프로젝터에서 내려가고 아이 보관함에서도 지워집니다.</p>
+    <div class="gal" id="gallery"></div>
+  </section>
   <section>
     <h2>자리 현황</h2>
     <div class="seats" id="seats"></div>
@@ -121,8 +137,15 @@ bAuto.onclick = function () { state.auto = !state.auto; save(); showAuto(); Stag
 showAuto();
 document.getElementById('bDemo').onclick  = function () { StageBus.send({ type: 'demo' }); };
 document.getElementById('bSound').onclick = function () { StageBus.send({ type: 'sound', on: true }); };
+document.getElementById('bQr').onclick = function () { StageBus.send({ type: 'qr', toggle: true }); };
 document.getElementById('bClear').onclick = function () { if (confirm('프로젝터 무대의 그림을 모두 내립니다. 아이들 보관함은 남습니다.')) StageBus.send({ type: 'clear' }); };
-document.getElementById('bWipe').onclick  = function () { var t = prompt('오늘 들어온 그림과 배경을 모두 지웁니다.\n지우려면 "지움" 이라고 입력하세요.'); if (t === '지움') { StageBus.send({ type: 'clear' }); StageBus.send({ type: 'wipe' }); alert('서버 연결 후에는 보관함까지 지워집니다. 지금은 무대만 비웠습니다.'); } };
+document.getElementById('bWipe').onclick  = function () {
+  var t = prompt('수업을 마치고 초기화합니다. 오늘 올라온 그림·배경이 프로젝터, 강사 화면, 아이 보관함에서 모두 지워집니다.\n지우려면 "지움" 이라고 입력하세요.');
+  if (t !== '지움') return;
+  StageBus.send({ type: 'clear' }); StageBus.send({ type: 'wipe' });
+  gallery = {}; kidWorlds = {}; renderGallery(); renderKidWorlds(); selectWorld('sea');
+  alert('초기화했습니다. (지금 열려 있는 아이 화면은 바로 지워지고, 닫혀 있던 기기는 서버 연결 후 지워집니다)');
+};
 
 /* 허용 스위치 */
 document.querySelectorAll('#switches input').forEach(function (i) {
@@ -147,11 +170,31 @@ function renderKidWorlds() {
   document.getElementById('kidWorldsNote').style.display = Object.keys(kidWorlds).length ? 'none' : '';
 }
 
+/* 올라온 그림 */
+var gallery = {};
+function renderGallery() {
+  var box = document.getElementById('gallery'); box.innerHTML = '';
+  var ids = Object.keys(gallery).reverse();
+  document.getElementById('galCount').textContent = ids.length ? ids.length + '개' : '';
+  ids.forEach(function (id) {
+    var it = gallery[id], d = document.createElement('div'); d.className = 'gi';
+    d.innerHTML = '<img src="' + it.dataUrl + '"><p><b>' + it.seat + '번 ' + (it.nick || '') + '</b><br>' + (it.desc || '') + '</p><button>삭제</button>';
+    d.querySelector('button').onclick = function () {
+      if (!confirm(it.seat + '번 ' + (it.nick || '') + '의 그림을 지웁니다. 프로젝터와 아이 보관함에서 모두 사라집니다.')) return;
+      StageBus.send({ type: 'remove', id: id }); StageBus.send({ type: 'removeItem', id: id, seat: it.seat });
+      delete gallery[id]; renderGallery();
+    };
+    box.appendChild(d);
+  });
+  if (!ids.length) box.innerHTML = '<p class="muted">아직 없습니다.</p>';
+}
+renderGallery();
 /* 프로젝터 상태 + 아이 배경 제출 받기 */
 var statusEl = document.getElementById('status'), lastSeen = 0;
 StageBus.on(function (m) {
   if (m.type === 'status') { lastSeen = Date.now(); statusEl.textContent = '프로젝터: 연결됨 · ' + m.count + '개 · ' + m.world; }
   if (m.type === 'submitWorld') { kidWorlds[m.id] = m; renderKidWorlds(); }
+  if (m.type === 'sprite') { gallery[m.id] = m; renderGallery(); }
 });
 setInterval(function () { if (Date.now() - lastSeen > 8000) statusEl.textContent = '프로젝터: 연결 대기'; }, 2000);
 StageBus.send({ type: 'ping' });

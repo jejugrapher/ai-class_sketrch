@@ -15,6 +15,10 @@
   #dev { position:fixed; left:12px; bottom:12px; display:none; flex-wrap:wrap; gap:6px; background:rgba(0,0,0,.55); padding:8px; border-radius:10px; }
   #dev.on { display:flex; }
   #dev button { background:#1f6feb; color:#fff; border:0; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer; }
+  #qr { position:fixed; inset:0; display:none; align-items:center; justify-content:center; gap:48px; background:linear-gradient(#0b3d91,#03132b); color:#fff; z-index:4; }
+  #qr.on { display:flex; }
+  #qr img { width:min(52vh, 480px); height:auto; background:#fff; padding:18px; border-radius:18px; }
+  #qr .txt h1 { font-size:54px; margin:0 0 14px; } #qr .txt p { font-size:26px; margin:6px 0; opacity:.92; } #qr .txt .u { font-size:22px; opacity:.7; font-family:monospace; margin-top:18px; }
   #tag { position:fixed; right:14px; top:10px; color:rgba(255,255,255,.55); font-size:14px; pointer-events:none; }
 </style>
 </head>
@@ -22,13 +26,15 @@
 <canvas id="c"></canvas>
 <div id="tag"></div>
 <div id="gate"><h1>스케치 무대</h1><p>화면을 한 번 누르면 시작합니다 (소리 켜짐)</p></div>
+<div id="qr"><img src="../assets/qr_kid.png" alt="아이 화면 QR"><div class="txt"><h1>스케치 무대</h1><p>① 폰 카메라로 QR을 찍어요</p><p>② 자리 번호와 별명을 정해요</p><p>③ 그림을 그려서 무대로 보내요</p><div class="u">jejugrapher.github.io/ai-class_sketrch/kid/</div></div></div>
 <div id="dev">
   <button data-w="sea">바다</button><button data-w="village">마을</button><button data-w="night">마법의 밤</button>
   <button id="dFriend">친구</button><button id="dSsireum">씨름</button><button id="dDance">춤</button>
-  <button id="dDemo">예시</button><button id="dWorld">아이배경 예시</button><button id="dClear">비우기</button>
+  <button id="dDemo">예시</button><button id="dRig">도안 예시</button><button id="dWorld">아이배경 예시</button><button id="dClear">비우기</button>
 </div>
 <script src="../stage_engine.js"></script>
 <script src="../stage_demos.js"></script>
+<script src="../stage_guides.js"></script>
 <script src="../stage_bus.js"></script>
 <script>
 var tag = document.getElementById('tag');
@@ -39,7 +45,10 @@ tag.textContent = '제주 바다 · 0개';
 
 /* 첫 터치: 소리 허용 + 전체화면 */
 var gate = document.getElementById('gate');
-gate.onclick = function () { E.sound.enable(); gate.classList.add('off'); if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {}); };
+var qr = document.getElementById('qr');
+gate.onclick = function () { E.sound.enable(); gate.classList.add('off'); qr.classList.add('on'); if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {}); };
+qr.onclick = function () { qr.classList.remove('on'); };                     // 프로젝터에서 직접 눌러도 닫힘
+document.addEventListener('keydown', function (e) { if (e.key === 'q' || e.key === 'Q') qr.classList.toggle('on'); });   // Q 키로 토글
 
 /* 이미지 데이터 → 스프라이트 (흰 배경 오려내기 포함) */
 function addFromData(msg) {
@@ -49,6 +58,13 @@ function addFromData(msg) {
 }
 function toCanvas(im) { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c; }
 
+/* 도안 예시 (강사 [예시 넣기]) */
+function addRigSamples() {
+    var cols = ['#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#ffb703', '#cdb4db', '#90be6d'];
+    var cats = { whale: 'whale', oarfish: 'fish', crab: 'crawler', clam: 'clam', squid: 'fish', octopus: 'crawler', haenyeo: 'person', person: 'person', bird: 'bird', raft: 'boat', sailboat: 'boat', car: 'vehicle', airplane: 'aircraft', paperplane: 'light', submarine: 'sub' };
+    StageGuides.names.forEach(function (n, i) { var smp = StageGuides.sample(n, cols[i % cols.length]); if (smp) E.add(smp.canvas, { seat: (i % 15) + 1, nick: StageDemos.NICKS[i % 12], cat: cats[n] || 'fish', rig: smp.rig, rigBox: smp.rigBox }); });
+}
+
 /* 강사 명령 받기 */
 StageBus.on(function (m) {
   switch (m.type) {
@@ -56,11 +72,12 @@ StageBus.on(function (m) {
     case 'scene':  ({ friends: E.friends, tournament: E.tournament, dance: E.dance, end: E.endScene }[m.name] || function(){})(); break;
     case 'auto':   E.setAuto(m.on); break;
     case 'clear':  E.clear(); break;
-    case 'demo':   StageDemos.all(function (im, cat, desc) { E.add(E.cutout(im, 512), { seat: Math.ceil(Math.random()*15), nick: StageDemos.NICKS[Math.floor(Math.random()*12)], cat: cat, desc: desc }); }); break;
+    case 'demo':   addRigSamples(); break;
     case 'sprite': addFromData(m); break;
     case 'remove': E.removeSprite(m.id); break;
     case 'defineWorld': (function () { var im = new Image(); im.onload = function () { E.defineWorld(m.id, { name: m.name, kind: m.kind, band: m.band, desc: m.desc, img: im }); if (m.show) E.setWorld(m.id); }; im.src = m.dataUrl || m.url; })(); break;
     case 'sound':  if (m.on) E.sound.enable(); else E.sound.on = false; break;
+    case 'qr':     qr.classList.toggle('on', m.toggle ? !qr.classList.contains('on') : !!m.on); break;
     case 'ping':   StageBus.send({ type: 'status', count: E.sprites().length, world: E.world() }); break;
   }
 });
@@ -72,6 +89,7 @@ if (/[?&]dev=1/.test(location.search)) {
   document.querySelectorAll('#dev [data-w]').forEach(function (b) { b.onclick = function () { E.setWorld(b.dataset.w); }; });
   document.getElementById('dFriend').onclick = E.friends; document.getElementById('dSsireum').onclick = E.tournament; document.getElementById('dDance').onclick = E.dance;
   document.getElementById('dClear').onclick = E.clear;
+  document.getElementById('dRig').onclick = addRigSamples;
   document.getElementById('dDemo').onclick = function () { StageBus.send({ type: 'demo' }); StageDemos.all(function (im, cat, desc) { E.add(E.cutout(im, 512), { seat: Math.ceil(Math.random()*15), nick: StageDemos.NICKS[Math.floor(Math.random()*12)], cat: cat, desc: desc }); }); };
   /* 아이가 그린 배경 흉내: 크레용 느낌의 '화산섬과 바다' (물·땅·하늘) */
   document.getElementById('dWorld').onclick = function () {

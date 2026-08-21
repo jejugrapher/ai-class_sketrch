@@ -60,7 +60,7 @@ var WORLDS = {
   sea: {
     name: '제주 바다',
     band: { surface: 0.07, swim: [0.15, 0.78], bottom: 0.87 },
-    rule: { fish: 'swim', whale: 'swim', shark: 'swim', sub: 'swim', crawler: 'crawl', bird: 'paddle', person: 'swim', animal: 'paddle',
+    rule: { fish: 'swim', whale: 'swim', shark: 'swim', sub: 'swim', clam: 'clam', crawler: 'crawl', bird: 'paddle', person: 'swim', animal: 'paddle',
             boat: 'float', vehicle: 'sink', aircraft: 'sink', light: 'paddle', heavy: 'sink' },
     draw: drawSea
   },
@@ -68,7 +68,7 @@ var WORLDS = {
     name: '옛 포구 마을',
     band: { sky: [0.08, 0.4], surface: 0.525, swim: [0.56, 0.72], bottom: 0.87 },
     /* 마을: 일반 물고기는 물속이라 보이지 않고 물결만. 고래는 뛰어오르고, 상어는 지느러미만 보인다 */
-    rule: { fish: 'hidden', whale: 'breach', shark: 'fin', sub: 'hidden', crawler: 'crawl', bird: 'fly', person: 'person', animal: 'walk',
+    rule: { fish: 'hidden', whale: 'breach', shark: 'fin', sub: 'hidden', clam: 'hidden', crawler: 'crawl', bird: 'fly', person: 'person', animal: 'walk',
             boat: 'float', vehicle: 'walk', aircraft: 'fly', light: 'fly', heavy: 'walk' },
     draw: drawVillage
   },
@@ -141,7 +141,7 @@ function motionFromAbilities(a, wname) {
 function motionFor(sp, wname) {
   var wd = cur(wname);
   if (wd.rule && sp.abil) { var am = motionFromAbilities(sp.abil, wname); if (am) return am; }
-  if (!wd.rule) return (sp.cat === 'fish' || sp.cat === 'whale' || sp.cat === 'shark' || sp.cat === 'sub') ? 'swim' : 'drift';
+  if (!wd.rule) return (sp.cat === 'fish' || sp.cat === 'whale' || sp.cat === 'shark' || sp.cat === 'sub') ? 'swim' : sp.cat === 'clam' ? 'clam' : 'drift';
   var m = wd.rule[sp.cat] || 'sink';
   if (m === 'person') {                         // 마을의 사람: 걷기 / 헤엄 / 배 타기
     var boats = sprites.filter(function (o) { return o !== sp && o.motion === 'float'; });
@@ -158,6 +158,7 @@ function homeY(sp, motion) {
     case 'swim':
     case 'hidden':
     case 'breach': return H*(b.swim[0] + Math.random()*(b.swim[1]-b.swim[0]));
+    case 'clam':   return H*b.bottom - hh - H*(0.03 + Math.random()*0.15);
     case 'fin':    return H*b.surface + sp.h*sp.depth*0.28;      // 윗부분 28%만 물 밖으로
     case 'crawl':
     case 'walk':
@@ -179,7 +180,7 @@ function applyRules(sp, entering) {
   if (m === 'sink' && entering) { sp.y = H*0.2; sp.vy = 0; sp.x = W*(0.15 + Math.random()*0.7); spawnSplash(sp.x, H*cur().band.surface); }   // 새로 오면 화면 안 위쪽에서 떨어진다
   if (m === 'paddle' && !entering && prev !== 'paddle') sp.rising = true; // 수면으로 떠오르기
   if (m === 'paddle' && entering) sp.y = sp.ty;
-  if ((m === 'walk' || m === 'crawl' || m === 'fly' || m === 'float' || m === 'swim' || m === 'drift' || m === 'hidden' || m === 'breach' || m === 'fin') && entering) sp.y = sp.ty;
+  if ((m === 'walk' || m === 'crawl' || m === 'fly' || m === 'float' || m === 'swim' || m === 'drift' || m === 'hidden' || m === 'breach' || m === 'fin' || m === 'clam') && entering) sp.y = sp.ty;
   delete sp.jumpT; delete sp.breachT;
   if (prev && prev !== m && !entering && m !== 'sink' && m !== 'paddle') { /* 나머지는 부드럽게 이동 */ }
 }
@@ -412,6 +413,33 @@ var Sound = (function () {
 })();
 
 /* ═══════════════ 스프라이트 (y는 가운데 기준) ═══════════════ */
+/* 도안 리그: 부위를 잘라 두고 관절로 돌린다. rigBox = {ox, oy, s}: 도안 좌표 → 그림 좌표 (ix = gx*s - ox) */
+function buildRig(sp, rigName, rigBox) {
+  var R = window.StageGuides && StageGuides.rigs && StageGuides.rigs[rigName]; if (!R) return;
+  sp.rigName = rigName; sp.rig = R; if (R.faceLeft) sp.faceLeft = true; if (R.noFlip) sp.noFlip = true;
+  if (!R.parts || !R.parts.length || !rigBox) return;
+  var img = sp.img, W0 = img.width, H0 = img.height;
+  var body = document.createElement('canvas'); body.width = W0; body.height = H0; var bc = body.getContext('2d'); bc.drawImage(img, 0, 0);
+  var parts = [];
+  R.parts.forEach(function (pt) {
+    var x0 = Math.max(0, Math.round(pt.box[0]*rigBox.s - rigBox.ox)), y0 = Math.max(0, Math.round(pt.box[1]*rigBox.s - rigBox.oy));
+    var x1 = Math.min(W0, Math.round(pt.box[2]*rigBox.s - rigBox.ox)), y1 = Math.min(H0, Math.round(pt.box[3]*rigBox.s - rigBox.oy));
+    if (x1 - x0 < 2 || y1 - y0 < 2) return;
+    var cv = document.createElement('canvas'); cv.width = x1 - x0; cv.height = y1 - y0;
+    cv.getContext('2d').drawImage(body, x0, y0, x1 - x0, y1 - y0, 0, 0, x1 - x0, y1 - y0);
+    // 비어 있는 부위(아이가 안 그린 곳)는 건너뛴다
+    var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, n = 0; for (var i = 3; i < d.length; i += 4) if (d[i] > 30) n++;
+    if (n < 10) return;
+    bc.clearRect(x0, y0, x1 - x0, y1 - y0);
+    parts.push({ cv: cv, x: x0, y: y0, w: x1 - x0, h: y1 - y0, px: pt.pivot[0]*rigBox.s - rigBox.ox, py: pt.pivot[1]*rigBox.s - rigBox.oy, anim: pt.anim, name: pt.name });
+  });
+  if (parts.length) { sp.body = body; sp.parts = parts; }
+}
+function partAngle(sp, pt, t) {
+  var a = pt.anim[sp.motion] || pt.anim.base || { amp: 0, freq: 1 };
+  if (a.spin) return (a.spin*t) * (sp.dir || 1);
+  return (a.bias || 0) + (a.amp || 0)*Math.sin(t*(a.freq || 1)*2*Math.PI + (a.phase || 0) + sp.ph);
+}
 function addSprite(imgCanvas, seat, cat, nick, desc) {
   var base = 110 + Math.random()*70;
   var scale = base / Math.max(imgCanvas.width, imgCanvas.height);
@@ -425,6 +453,7 @@ function addSprite(imgCanvas, seat, cat, nick, desc) {
     ctrl: null, rot: 0, bounce: 0, mood: null, motion: null
   };
   sp.id = (opts.idFor && opts.idFor(sp)) || ('s' + (++seq));
+  if (opts._rig) buildRig(sp, opts._rig.name, opts._rig.box);
   applyRules(sp, true);
   sprites.push(sp);
   Sound.play('enter');
@@ -452,12 +481,26 @@ function drawSprite(sp, t) {
   if (mo === 'fin') { g.beginPath(); g.rect(0, 0, W, H*cur().band.surface + 2); g.clip(); }   // 수면 위만 그린다
   g.translate(sp.x, sp.y - sp.bounce);
   var faceRight = sp.ctrl && sp.ctrl.face ? sp.ctrl.face > 0 : sp.dir > 0;
+  if (sp.faceLeft) faceRight = !faceRight;                 // 도안이 왼쪽을 보는 그림
+  if (sp.noFlip) faceRight = !sp.faceLeft;                 // 정면 그림은 뒤집지 않는다
   g.scale(faceRight ? 1 : -1, 1);
-  g.rotate(sp.rot + (mo === 'swim' ? Math.sin(t*1.3 + sp.ph)*0.05 : 0));
+  var pose = 0;
+  if (sp.rig && sp.rig.pose && sp.rig.pose[mo] === 'horizontal' && !sp.ctrl) pose = Math.PI/2 + (sp.pitch || 0);   // 물에서는 몸을 눕힌다(머리가 앞)
+  g.rotate(sp.rot + pose + (mo === 'swim' && !sp.parts ? Math.sin(t*1.3 + sp.ph)*0.05 : 0));
   g.globalAlpha = 0.6 + 0.4*k;
-  if (mo === 'swim') {
-    var N = 14, sw = img.width/N, dsw = dw/N, amp = dh*0.07*sp.wob;
-    for (var i = 0; i < N; i++) { var tail = 1 - i/N, dy = Math.sin(t*6 + sp.ph - i*0.45)*amp*tail*tail; g.drawImage(img, i*sw, 0, sw+1, img.height, -dw/2 + i*dsw, -dh/2 + dy, dsw+1, dh); }
+  if (sp.parts) {                                          // 도안 리그: 몸통 + 관절로 도는 부위
+    var kk = dw/img.width, base = sp.body;
+    if (mo === 'swim' && sp.rig.wave) {                    // 산갈치처럼 긴 몸은 물결치며
+      var N2 = 16, sw2 = base.width/N2, dsw2 = dw/N2, amp2 = dh*0.05*sp.rig.wave, headLeft = !!sp.faceLeft;
+      for (var i2 = 0; i2 < N2; i2++) { var tl = headLeft ? i2/N2 : 1 - i2/N2, dy2 = Math.sin(t*5 + sp.ph - i2*0.5)*amp2*tl; g.drawImage(base, i2*sw2, 0, sw2+1, base.height, -dw/2 + i2*dsw2, -dh/2 + dy2, dsw2+1, dh); }
+    } else g.drawImage(base, -dw/2, -dh/2, dw, dh);
+    sp.parts.forEach(function (pt) {
+      g.save(); g.translate(-dw/2 + pt.px*kk, -dh/2 + pt.py*kk); g.rotate(partAngle(sp, pt, t));
+      g.drawImage(pt.cv, (pt.x - pt.px)*kk, (pt.y - pt.py)*kk, pt.w*kk, pt.h*kk); g.restore();
+    });
+  } else if (mo === 'swim') {
+    var N = 14, sw = img.width/N, dsw = dw/N, amp = dh*0.07*sp.wob, hl = !!sp.faceLeft;
+    for (var i = 0; i < N; i++) { var tail = hl ? i/N : 1 - i/N, dy = Math.sin(t*6 + sp.ph - i*0.45)*amp*tail*tail; g.drawImage(img, i*sw, 0, sw+1, img.height, -dw/2 + i*dsw, -dh/2 + dy, dsw+1, dh); }
   } else {
     var sq = 1;
     if (mo === 'walk') sq = 1 + Math.sin(t*8 + sp.ph)*0.04;
@@ -495,7 +538,8 @@ function drawBadge(sp) {
 /* 평소 움직임 */
 function roam(sp, t, dt) {
   var b = cur().band, mo = sp.motion, hh = halfH(sp);
-  var speedMul = { crawl: 0.4, walk: 0.7, paddle: 0.5, float: 0.5, fly: 1.5, drift: 0.5, sink: 0, ride: 0, hidden: 0.8, breach: 1.0, fin: 0.9 }[mo];
+  var speedMul = { crawl: 0.4, walk: 0.7, paddle: 0.5, float: 0.5, fly: 1.5, drift: 0.5, sink: 0, ride: 0, hidden: 0.8, breach: 1.0, fin: 0.9, clam: 0 }[mo];
+  if (mo === 'clam') speedMul = Math.max(0, Math.sin(t*1.2*2*Math.PI + sp.ph))*2.2;   // 껍데기를 닫을 때 앞으로 쑥
   if (speedMul === undefined) speedMul = 1;
 
   if (mo === 'sink') {                                     // 가라앉기: 중력, 기울기, 거품 → 바닥에 눕기
@@ -541,6 +585,19 @@ function roam(sp, t, dt) {
   } else if (mo === 'fin') {
     sp.ty = H*b.surface + hh*0.44 + Math.sin(t*1.5 + sp.ph)*2;   // 지느러미만 수면 위
     if (Math.random() < 0.05) spawnWake(sp.x - sp.dir*sp.w*sp.depth*0.3, H*b.surface);
+  } else if (mo === 'clam') {                               // 조개: 바닥 근처에서 껍데기를 여닫으며 통통
+    var lo = H*b.bottom - hh - H*0.2, hi2 = H*b.bottom - hh - H*0.02;
+    sp.ty += (Math.sin(t*1.2*2*Math.PI + sp.ph) > 0.7 ? -1.2 : 0.6);
+    sp.ty = Math.max(lo, Math.min(hi2, sp.ty));
+    sp.rot = Math.sin(t*1.2*2*Math.PI + sp.ph)*0.08;
+  } else if (mo === 'swim' && sp.rig && sp.rig.dive) {     // 해녀: 수면에서 숨 쉬고 잠수했다 올라온다
+    var cyc = (t*0.08 + sp.ph/6.28) % 1, top2 = H*b.swim[0], deep = H*b.swim[1];
+    var target = cyc < 0.3 ? top2 : cyc < 0.75 ? deep : top2;
+    sp.ty += (target - sp.ty)*0.02;
+    sp.pitch = (target - sp.y) > 40 ? 0.5 : (target - sp.y) < -40 ? -0.5 : 0;   // 내려갈 땐 머리 아래, 올라올 땐 위
+    if (cyc > 0.3 && cyc < 0.75 && Math.random() < 0.06) spawnBubble(sp.x, sp.y - hh*0.5);
+    if (cyc >= 0.75 && cyc < 0.77 && sp.y < top2 + 20 && !sp.breathed) { spawnSplash(sp.x, sp.y - hh); sp.breathed = true; }
+    if (cyc < 0.3) sp.breathed = false;
   } else if (mo === 'swim') {
     sp.ty += Math.sin(t*0.7 + sp.ph)*0.25;
     if (Math.random() < 0.002) sp.ty = H*(b.swim[0] + Math.random()*(b.swim[1]-b.swim[0]));
@@ -567,6 +624,7 @@ function roam(sp, t, dt) {
   if (sp.dir < 0 && sp.x < -120) { sp.dir = 1; sp.x = -120; }
   if (Math.random() < 0.0008) sp.dir *= -1;
   if (mo === 'walk' || mo === 'crawl' || mo === 'swim' || mo === 'hidden' || mo === 'breach') sp.rot *= 0.9;
+  if (mo !== 'swim') sp.pitch = 0;
 }
 function steer(sp) {
   var c = sp.ctrl, e = c.ease || 0.05;
@@ -734,7 +792,7 @@ requestAnimationFrame(step);
   function clear() { sprites = []; scene = null; Sound.stopLoop(); updateCount(); }
   function removeSprite(id) { sprites = sprites.filter(function (s) { return s.id !== id; }); updateCount(); }
   function add(img, meta) { meta = meta || {}; if (meta.id) { var dup = sprites.some(function (s) { return s.id === meta.id; }); if (dup) return null; }
-    var keep = opts.idFor; opts.idFor = meta.id ? function () { return meta.id; } : null; addSprite(img, meta.seat, meta.cat, meta.nick, meta.desc); opts.idFor = keep;
+    var keep = opts.idFor; opts.idFor = meta.id ? function () { return meta.id; } : null; opts._rig = meta.rig ? { name: meta.rig, box: meta.rigBox } : null; addSprite(img, meta.seat, meta.cat, meta.nick, meta.desc); opts.idFor = keep; opts._rig = null;
     var sp = sprites[sprites.length - 1]; if (meta.abil) { sp.abil = meta.abil; applyRules(sp, true); } return sp; }
   return {
     add: add, clear: clear, removeSprite: removeSprite, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
