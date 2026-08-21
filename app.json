@@ -1,1 +1,4 @@
-cd "/Volumes/T5 EVO/ai강의/260822_sketch_stage/ai-class_sketrch" && git add . && git commit -m "Connect Apps Script server (app.json exec)" && git push
+{
+  "exec": "https://script.google.com/macros/s/AKfycbwDxhAqlH5A9Rc2xhkSKVpTdXTdVY5s_b5w4slNjR--3dRO0TME-lQEP6pVKvJmMC2L/exec",
+  "teacherKey": "stage"
+}
