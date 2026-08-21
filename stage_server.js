@@ -49,7 +49,8 @@ var StageServer = (function () {
         StageBus.setServer({ poll: function (since) {
           return call('poll', { since: since }).then(function (r) {
             if (!r || !r.ok) return null;
-            var items = r.cmds.slice();
+            /* 처음 연결(since=0)에는 옛 명령(공간 전환·장면·조종 등)을 다시 실행하지 않는다. 그림과 허용 상태만 받는다 */
+            var items = since === 0 ? r.cmds.filter(function (c) { return c.type === 'allow' || c.type === 'defineWorld'; }) : r.cmds.slice();
             var jobs = [];
             if (role === 'stage') {
               r.sprites.forEach(function (sp) { jobs.push(image(sp.fileId).then(function (d) { if (d) items.push({ type: 'sprite', id: sp.id, seat: sp.seat, nick: sp.nick, cat: sp.cat, desc: sp.desc, abil: sp.abil, rig: sp.rig, rigBox: sp.rigBox, dataUrl: d, transparent: true }); })); });

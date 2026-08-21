@@ -96,7 +96,7 @@ function route_(req) {
     case 'listItems':   return { ok: true, items: listItems_(req.seat) };
     case 'send':        return setState_(req.id, req.kind === 'world' ? 'submitted' : 'sent');
     case 'ai':          return ai_(req);
-    case 'ctrl':        pushCmd_({ type: 'ctrl', id: String(req.id), dx: +req.dx || 0, dy: +req.dy || 0 }); return { ok: true };          // 조종 (Firebase 없을 때)
+    case 'ctrl':        pushCmd_({ type: 'ctrl', id: String(req.id), dx: +req.dx || 0, dy: +req.dy || 0, act: req.act ? String(req.act) : '' }); return { ok: true };          // 조종 (Firebase 없을 때)
     case 'chat':        pushCmd_({ type: 'chat', id: String(req.id), seat: +req.seat, nick: String(req.nick || '').slice(0, 12), text: String(req.text || '').slice(0, 40) }); return { ok: true };
     /* 프로젝터 */
     case 'poll':        return poll_(req);

@@ -73,6 +73,13 @@ var WORLDS = {
             boat: 'float', vehicle: 'walk', aircraft: 'fly', light: 'fly', heavy: 'walk' },
     draw: drawVillage
   },
+  forest: {
+    name: '제주 숲',
+    band: { sky: [0.06, 0.42], bottom: 0.86, swim: [0.6, 0.8], surface: 0.6 },
+    rule: { fish: 'crawl', whale: 'crawl', shark: 'crawl', sub: 'crawl', clam: 'crawl', crawler: 'crawl', bird: 'fly', person: 'walk', animal: 'walk',
+            boat: 'walk', vehicle: 'walk', aircraft: 'fly', light: 'fly', heavy: 'walk' },
+    draw: drawForest
+  },
   night: {
     name: '마법의 밤',
     band: { swim: [0.14, 0.72], bottom: 0.85 },
@@ -290,6 +297,29 @@ function drawVillage(t) {
     var gx = ((t*30 + gi*W*0.3) % (W + 80)) - 40, gy = H*(0.12 + gi*0.06) + Math.sin(t*2 + gi)*6;
     g.beginPath(); g.moveTo(gx-12, gy); g.quadraticCurveTo(gx-6, gy-7, gx, gy); g.quadraticCurveTo(gx+6, gy-7, gx+12, gy); g.stroke();
   }
+}
+
+/* ─── 제주 숲: 오름·나무·길 ─── */
+var trees = []; for (var ti = 0; ti < 16; ti++) trees.push({ x: Math.random(), h: 0.18 + Math.random()*0.2, w: 0.05 + Math.random()*0.05, hue: 95 + Math.random()*40, ph: Math.random()*6, round: Math.random() < 0.5 });
+function drawForest(t) {
+  var b = WORLDS.forest.band;
+  var sky = g.createLinearGradient(0, 0, 0, H*0.6); sky.addColorStop(0, '#9fd3ff'); sky.addColorStop(1, '#e8f6ff'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#ffe08a'; g.beginPath(); g.arc(W*0.15, H*0.14, 40, 0, 6.3); g.fill();
+  g.fillStyle = '#7fb069'; g.beginPath(); g.moveTo(0, H*0.62); g.quadraticCurveTo(W*0.2, H*0.3, W*0.45, H*0.62); g.fill();          // 오름
+  g.fillStyle = '#6a9c55'; g.beginPath(); g.moveTo(W*0.35, H*0.62); g.quadraticCurveTo(W*0.65, H*0.36, W*1.0, H*0.62); g.fill();
+  g.fillStyle = '#4f8a3c'; g.fillRect(0, H*0.6, W, H*0.4);
+  trees.forEach(function (tr) {                                                                    // 나무
+    var x = tr.x*W, base = H*(0.64 + (tr.x*7 % 1)*0.2), h = tr.h*H, w = tr.w*W, sway = Math.sin(t*0.8 + tr.ph)*4;
+    g.fillStyle = '#5a3b2a'; g.fillRect(x - w*0.08, base - h*0.35, w*0.16, h*0.35);
+    g.fillStyle = 'hsl(' + tr.hue + ',45%,' + (30 + (tr.x*13 % 1)*12) + '%)';
+    if (tr.round) { g.beginPath(); g.ellipse(x + sway, base - h*0.6, w*0.6, h*0.42, 0, 0, 6.3); g.fill(); }
+    else { g.beginPath(); g.moveTo(x - w*0.6, base - h*0.3); g.lineTo(x + sway, base - h); g.lineTo(x + w*0.6, base - h*0.3); g.closePath(); g.fill(); g.beginPath(); g.moveTo(x - w*0.45, base - h*0.55); g.lineTo(x + sway, base - h*1.05); g.lineTo(x + w*0.45, base - h*0.55); g.closePath(); g.fill(); }
+  });
+  g.fillStyle = '#c9a66b'; g.beginPath(); g.moveTo(0, H*b.bottom + 10);                             // 흙길
+  for (var x = 0; x <= W; x += 40) g.lineTo(x, H*b.bottom + 10 - Math.sin(x*0.01)*6);
+  g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fill();
+  g.fillStyle = '#3f7a2e'; for (var gx = 0; gx < W; gx += 28) { g.beginPath(); g.moveTo(gx, H*b.bottom + 12); g.lineTo(gx + 6, H*b.bottom - 10 - (gx*3 % 9)); g.lineTo(gx + 12, H*b.bottom + 12); g.fill(); }   // 풀
+  for (var bi = 0; bi < 3; bi++) { var bx = ((t*25 + bi*W*0.33) % (W + 60)) - 30, by = H*(0.15 + bi*0.08) + Math.sin(t*2 + bi)*5; g.strokeStyle = '#445'; g.lineWidth = 2; g.beginPath(); g.moveTo(bx - 10, by); g.quadraticCurveTo(bx - 5, by - 6, bx, by); g.quadraticCurveTo(bx + 5, by - 6, bx + 10, by); g.stroke(); }
 }
 
 /* ─── 마법의 밤: 별자리·반딧불이·오로라·빛나는 버섯. 규칙 없음 ─── */
@@ -553,6 +583,25 @@ function drawBadge(sp) {
 }
 
 /* 평소 움직임 */
+/* 아이가 조종하는 그림이 예시 캐릭터 가까이 오면 둘 다 멈춰 마주 보고 기다린다.
+   화살표로 움직이면 풀리고, 말·친구하기·씨름은 그 자리에서 이어진다 */
+function encounters(t) {
+  if (scene) { sprites.forEach(function (sp) { sp.wait = null; }); return; }
+  var R = W*0.12, now = performance.now();
+  sprites.forEach(function (sp) { if (sp.wait && (sprites.indexOf(sp.wait) < 0)) sp.wait = null; });
+  sprites.forEach(function (kid) {
+    if (kid.demo || kid.ctrl || !(kid.lastInput && now - kid.lastInput < 15000)) { if (kid.wait && !kid.demo) { kid.wait.wait = null; kid.wait = null; } return; }
+    var d = kid.wait, dist = d ? Math.hypot(d.x - kid.x, d.y - kid.y) : 1e9;
+    if (d && dist > R*1.6) { d.wait = null; kid.wait = null; d = null; }
+    if (!d) { var best = null, bd = R; sprites.forEach(function (o) { if (!o.demo || o.ctrl || o.wait) return; var dd = Math.hypot(o.x - kid.x, o.y - kid.y); if (dd < bd) { bd = dd; best = o; } });
+      if (best) { kid.wait = best; best.wait = kid; best.manual = null; best.chat = { text: ['무슨 일이야?', '안녕? 나랑 놀래?', '뭐 할까?'][Math.floor(Math.random()*3)], at: now, until: now + 3000 }; if (!kid.manual) kid.chat = { text: '말하기·친구하기·씨름하기!', at: now, until: now + 3000 }; } }
+  });
+}
+function idleFacing(sp, t) {                      // 멈춰서 상대를 보며 살짝 숨 쉰다
+  var o = sp.wait; if (!o) return;
+  sp.dir = o.x >= sp.x ? 1 : -1; sp.ty = sp.y; sp.bounce = Math.abs(Math.sin(t*2 + sp.ph))*3; sp.rot *= 0.9;
+  if (sp.motion === 'swim' || sp.motion === 'drift') sp.y += Math.sin(t*1.2 + sp.ph)*0.15;
+}
 /* 아이가 조종 중이면 그 방향으로, 3초 입력이 없으면 다시 저절로 움직인다 */
 function manualMove(sp, t, dt) {
   var m = sp.manual; if (!m || performance.now() > m.until) { sp.manual = null; return false; }
@@ -568,8 +617,19 @@ function manualMove(sp, t, dt) {
   if (mo === 'walk' || mo === 'crawl') sp.rot *= 0.9;
   return true;
 }
+/* 예시 캐릭터: 아이가 조종하는 그림이 가까이 오면 멈춰 서서 그쪽을 보고 기다린다 */
+function demoWait(sp) {
+  if (!sp.demo) return false;
+  var near = null, bd = 0.16*W;
+  sprites.forEach(function (o) { if (o === sp || o.demo || !o.manual) return; var d = Math.hypot(o.x - sp.x, (o.y - sp.y)*0.56); if (d < bd) { bd = d; near = o; } });
+  if (near) { sp.waitUntil = performance.now() + 1500; sp.dir = near.x > sp.x ? 1 : -1; if (!sp.chat) sp.mood = '❔'; return true; }
+  if (sp.waitUntil && performance.now() < sp.waitUntil) return true;
+  if (sp.waitUntil) { sp.waitUntil = 0; if (sp.mood === '❔') sp.mood = null; }
+  return false;
+}
 function roam(sp, t, dt) {
   if (manualMove(sp, t, dt)) return;
+  if (demoWait(sp)) { if (sp.motion === 'swim' || sp.motion === 'fly' || sp.motion === 'drift') sp.y += (sp.ty - sp.y)*0.03; if (sp.jumpT !== undefined) { var jt0 = t - sp.jumpT; sp.bounce = jt0 < 0.5 ? Math.sin(jt0/0.5*Math.PI)*30 : 0; if (jt0 >= 0.5) delete sp.jumpT; } return; }
   var b = cur().band, mo = sp.motion, hh = halfH(sp);
   var speedMul = { crawl: 0.4, walk: 0.7, paddle: 0.5, float: 0.5, fly: 1.5, drift: 0.5, sink: 0, ride: 0, hidden: 0.8, breach: 1.0, fin: 0.9, clam: 0 }[mo];
   if (mo === 'clam') speedMul = Math.max(0, Math.sin(t*1.2*2*Math.PI + sp.ph))*2.2;   // 껍데기를 닫을 때 앞으로 쑥
@@ -666,7 +726,7 @@ function steer(sp) {
   if (c.bounce !== undefined) sp.bounce = c.bounce;
   if (c.dir) sp.dir = c.dir;
 }
-function release(sp) { sp.ctrl = null; sp.rot = 0; sp.bounce = 0; sp.mood = null; sp.ty = homeY(sp, sp.motion); if (sp.motion === 'sink') { sp.settled = false; sp.vy = 0; } }
+function release(sp) { sp.ctrl = null; sp.wait = null; sp.rot = 0; sp.bounce = 0; sp.mood = null; sp.ty = homeY(sp, sp.motion); if (sp.motion === 'sink') { sp.settled = false; sp.vy = 0; } }
 
 /* ═══════════════ 효과 ═══════════════ */
 function spawn(type, x, y, n) { for (var i = 0; i < n; i++) particles.push({ type: type, x: x, y: y, vx: (Math.random()-0.5)*120, vy: -40 - Math.random()*120, life: 1.2 + Math.random()*0.8, age: 0, s: 14 + Math.random()*14 }); }
@@ -674,6 +734,91 @@ function spawnBubble(x, y) { particles.push({ type: 'bubble', x: x, y: y, vx: (M
 function spawnSand(x, y) { for (var i = 0; i < 10; i++) particles.push({ type: 'sand', x: x + (Math.random()-0.5)*40, y: y, vx: (Math.random()-0.5)*80, vy: -30 - Math.random()*40, life: 0.8, age: 0, s: 3 }); }
 function spawnSplash(x, y) { for (var i = 0; i < 12; i++) particles.push({ type: 'splash', x: x + (Math.random()-0.5)*30, y: y, vx: (Math.random()-0.5)*120, vy: -80 - Math.random()*100, life: 0.7, age: 0, s: 3 + Math.random()*3 }); }
 function say(txt, x, y, color) { texts.push({ txt: txt, x: x, y: y, age: 0, life: 2, color: color || '#fff' }); }
+
+/* ═══════════════ 청소 미션: 쓰레기 줍기 → 수거선/수거함에 놓기 ═══════════════ */
+var M = null;                                              // { type:'sea'|'forest', trash:[], bin:{}, score:{}, ended }
+var TRASH_DRAW = {
+  bottle: function (c, s) { c.fillStyle = '#8ecae6'; c.fillRect(-s*0.22, -s*0.3, s*0.44, s*0.8); c.fillStyle = '#219ebc'; c.fillRect(-s*0.12, -s*0.5, s*0.24, s*0.22); c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.strokeRect(-s*0.22, -s*0.3, s*0.44, s*0.8); },
+  bag:    function (c, s) { c.fillStyle = 'rgba(255,255,255,.85)'; c.strokeStyle = '#667'; c.lineWidth = s*0.05; c.beginPath(); c.moveTo(-s*0.4, -s*0.1); c.quadraticCurveTo(-s*0.5, s*0.5, 0, s*0.5); c.quadraticCurveTo(s*0.5, s*0.5, s*0.4, -s*0.1); c.quadraticCurveTo(s*0.2, -s*0.6, 0, -s*0.3); c.quadraticCurveTo(-s*0.2, -s*0.6, -s*0.4, -s*0.1); c.fill(); c.stroke(); },
+  cup:    function (c, s) { c.fillStyle = '#f4a261'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.beginPath(); c.moveTo(-s*0.35, -s*0.4); c.lineTo(s*0.35, -s*0.4); c.lineTo(s*0.22, s*0.45); c.lineTo(-s*0.22, s*0.45); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.fillRect(-s*0.4, -s*0.5, s*0.8, s*0.14); },
+  can:    function (c, s) { c.fillStyle = '#e63946'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.beginPath(); c.roundRect(-s*0.28, -s*0.45, s*0.56, s*0.9, s*0.1); c.fill(); c.stroke(); c.fillStyle = '#ddd'; c.fillRect(-s*0.28, -s*0.45, s*0.56, s*0.12); c.fillRect(-s*0.28, s*0.33, s*0.56, s*0.12); },
+  tire:   function (c, s) { c.strokeStyle = '#222'; c.lineWidth = s*0.3; c.beginPath(); c.arc(0, 0, s*0.4, 0, 6.3); c.stroke(); c.strokeStyle = '#555'; c.lineWidth = s*0.06; c.beginPath(); c.arc(0, 0, s*0.4, 0, 6.3); c.stroke(); },
+  boot:   function (c, s) { c.fillStyle = '#6b4a2b'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.beginPath(); c.moveTo(-s*0.2, -s*0.5); c.lineTo(s*0.15, -s*0.5); c.lineTo(s*0.15, s*0.1); c.lineTo(s*0.5, s*0.3); c.lineTo(s*0.5, s*0.5); c.lineTo(-s*0.2, s*0.5); c.closePath(); c.fill(); c.stroke(); },
+  wrapper:function (c, s) { c.fillStyle = '#ffd166'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.05; c.beginPath(); c.moveTo(-s*0.5, -s*0.2); c.lineTo(-s*0.3, -s*0.3); c.lineTo(s*0.3, -s*0.25); c.lineTo(s*0.5, -s*0.1); c.lineTo(s*0.45, s*0.3); c.lineTo(-s*0.45, s*0.25); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#e63946'; c.fillRect(-s*0.25, -s*0.12, s*0.5, s*0.2); }
+};
+function missionStart(type) {
+  if (M) missionStop(true);
+  var b = cur().band, n = 22, trash = [];
+  for (var i = 0; i < n; i++) {
+    var float = type === 'sea' && Math.random() < 0.55;
+    var kind = type === 'sea' ? (float ? ['bottle', 'bag', 'cup'][i % 3] : ['can', 'tire', 'boot', 'bottle'][i % 4]) : ['bottle', 'can', 'bag', 'cup', 'wrapper'][i % 5];
+    trash.push({ id: 't' + i, kind: kind, float: float, x: W*(0.06 + Math.random()*0.88), y: float ? H*(b.swim[0] + 0.05 + Math.random()*(b.swim[1] - b.swim[0] - 0.1)) : H*b.bottom - 14 - Math.random()*10,
+                 s: 26 + Math.random()*14, ph: Math.random()*6, vx: (Math.random() - 0.5)*12, held: null, vy: 0, rot: (Math.random() - 0.5)*0.6 });
+  }
+  M = { type: type, trash: trash, score: {}, bin: { x: W*0.5, y: type === 'sea' ? H*b.surface : H*b.bottom, dir: 1, w: 190 }, ended: false, start: performance.now() };
+  say(type === 'sea' ? '🧹 바다 청소 시작!' : '🌲 숲 청소 시작!', W/2, H*0.2, '#ffd166'); Sound.play('cheer');
+}
+function missionStop(silent) {
+  if (!M) return; M.ended = true;
+  if (!silent) { var rank = Object.keys(M.score).map(function (id) { var sp = findSprite(id); return { n: M.score[id], nick: sp ? (sp.nick || sp.seat + '번') : '?' }; }).sort(function (p, q) { return q.n - p.n; });
+    say(rank.length ? '🏆 ' + rank.slice(0, 3).map(function (r, i) { return (i + 1) + '등 ' + r.nick + ' ' + r.n + '개'; }).join('  ') : '청소 끝!', W/2, H*0.22, '#ffd166'); Sound.play('win'); }
+  sprites.forEach(function (sp) { sp.holding = null; });
+  var old = M; setTimeout(function () { if (M === old) M = null; }, silent ? 0 : 4000);
+}
+/* 줍기/놓기: 버튼 하나. 들고 있으면 놓고, 아니면 가까운 쓰레기를 집는다 */
+function grab(id) {
+  var sp = findSprite(id); if (!sp || !M || M.ended) { if (sp && !M) stuck(sp, '지금은 청소 시간이 아니야'); return false; }
+  if (sp.holding) return drop(id);
+  var best = null, bd = Math.max(90, sp.w*sp.depth*0.7);
+  M.trash.forEach(function (t) { if (t.held) return; var d = Math.hypot(t.x - sp.x, t.y - sp.y); if (d < bd) { bd = d; best = t; } });
+  if (!best) { stuck(sp, '가까이에 쓰레기가 없어'); return false; }
+  best.held = id; sp.holding = best; sp.chat = { text: '주웠다!', at: performance.now(), until: performance.now() + 1500 }; Sound.play('enter'); return true;
+}
+function drop(id) {
+  var sp = findSprite(id); if (!sp || !sp.holding) return false;
+  var t = sp.holding; sp.holding = null; t.held = null;
+  var near = M && !M.ended && Math.abs(sp.x - M.bin.x) < M.bin.w*0.7 && Math.abs(sp.y - M.bin.y) < H*0.22;
+  if (near) { M.trash = M.trash.filter(function (x) { return x !== t; }); M.score[id] = (M.score[id] || 0) + 1; say('+1', M.bin.x, M.bin.y - 80, '#7CFC00'); spawn('star', M.bin.x, M.bin.y - 40, 8); Sound.play('friend');
+    if (!M.trash.length) missionStop(); return true; }
+  t.x = sp.x; t.y = sp.y; t.vy = 0; sp.chat = { text: '앗, 떨어졌다', at: performance.now(), until: performance.now() + 1500 }; return true;
+}
+function missionTick(t, dt) {
+  if (!M) return;
+  var b = cur().band, floor = H*b.bottom - 14;
+  // 수거선/수거함
+  if (M.type === 'sea') { M.bin.x += M.bin.dir*18*dt; if (M.bin.x > W*0.85 || M.bin.x < W*0.15) M.bin.dir *= -1; M.bin.y = H*b.surface + Math.sin(t*1.3)*4; }
+  M.trash.forEach(function (tr) {
+    if (tr.held) { var sp = findSprite(tr.held); if (!sp) { tr.held = null; return; } tr.x = sp.x + (sp.dir > 0 ? -1 : 1)*sp.w*sp.depth*0.35; tr.y = sp.y + sp.h*sp.depth*0.1; return; }
+    if (tr.float) { tr.x += tr.vx*dt + Math.sin(t*0.8 + tr.ph)*0.3; tr.y += Math.sin(t*1.1 + tr.ph)*0.25; if (tr.x < 20 || tr.x > W - 20) tr.vx *= -1; tr.y = Math.max(H*b.swim[0], Math.min(H*b.swim[1], tr.y)); }
+    else if (tr.y < floor) { tr.vy += (M.type === 'sea' ? 60 : 500)*dt; tr.y += tr.vy*dt; if (tr.y >= floor) { tr.y = floor; tr.vy = 0; } }
+  });
+}
+function drawMission(t) {
+  if (!M) return;
+  var bin = M.bin;
+  g.save(); g.translate(bin.x, bin.y);
+  if (M.type === 'sea') {                                                  // 수거선
+    g.fillStyle = '#5a3b2a'; g.beginPath(); g.moveTo(-95, 0); g.lineTo(95, 0); g.lineTo(75, 36); g.lineTo(-75, 36); g.closePath(); g.fill();
+    g.fillStyle = '#f1faee'; g.fillRect(-40, -46, 70, 46); g.fillStyle = '#1f6feb'; g.fillRect(-30, -36, 16, 14); g.fillRect(-6, -36, 16, 14);
+    g.fillStyle = '#2ec4b6'; g.fillRect(30, -30, 50, 30); g.strokeStyle = '#1b2533'; g.lineWidth = 3; g.strokeRect(30, -30, 50, 30);
+    g.fillStyle = '#fff'; g.font = 'bold 16px sans-serif'; g.textAlign = 'center'; g.fillText('♻', 55, -8);
+    g.fillText('수거선 — 여기에 놓기', 0, 60);
+  } else {                                                                 // 수거함
+    g.fillStyle = '#2ec4b6'; g.beginPath(); g.roundRect(-60, -90, 120, 90, 10); g.fill(); g.strokeStyle = '#1b2533'; g.lineWidth = 4; g.strokeRect(-60, -90, 120, 90);
+    g.fillStyle = '#1b2533'; g.fillRect(-66, -100, 132, 14);
+    g.fillStyle = '#fff'; g.font = 'bold 34px sans-serif'; g.textAlign = 'center'; g.fillText('♻', 0, -28); g.font = 'bold 16px sans-serif'; g.fillText('수거함 — 여기에 놓기', 0, 26);
+  }
+  g.restore();
+  M.trash.forEach(function (tr) { g.save(); g.translate(tr.x, tr.y); g.rotate(tr.rot + (tr.float ? Math.sin(t + tr.ph)*0.2 : 0)); (TRASH_DRAW[tr.kind] || TRASH_DRAW.can)(g, tr.s); g.restore(); });
+  // 점수판
+  var ids = Object.keys(M.score).sort(function (p, q) { return M.score[q] - M.score[p]; }).slice(0, 5);
+  g.save(); g.font = 'bold 20px sans-serif'; g.textAlign = 'left';
+  var bw = 300, bh = 34 + ids.length*28 + 26; g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.roundRect(14, 14, bw, bh, 12); g.fill();
+  g.fillStyle = '#ffd166'; g.fillText((M.type === 'sea' ? '🧹 바다 청소' : '🌲 숲 청소') + '  남은 쓰레기 ' + M.trash.length, 28, 40);
+  g.fillStyle = '#fff'; ids.forEach(function (id, i) { var sp = findSprite(id); g.fillText((i + 1) + '. ' + (sp ? (sp.nick || sp.seat + '번') : '?') + '  ' + M.score[id] + '개', 28, 70 + i*28); });
+  if (!ids.length) { g.fillStyle = '#ddd'; g.font = '16px sans-serif'; g.fillText('쓰레기 옆에서 [줍기] → 수거 장소에서 [놓기]', 28, 70); }
+  g.restore();
+}
 
 /* ═══════════════ 장면 ═══════════════ */
 var scene = null, autoPlay = true, lastAuto = 0;
@@ -824,7 +969,9 @@ function step(now) {
   if (scene) scene.tick(t);
   else if (autoPlay && sprites.length >= 2 && t - lastAuto > 25 && Math.random() < 0.01) { lastAuto = t; friends(pickTwo()); }
 
-  sprites.forEach(function (sp) { if (sp.ctrl) steer(sp); else roam(sp, t, dt); });
+  missionTick(t, dt);
+  encounters(t);
+  sprites.forEach(function (sp) { if (sp.ctrl) steer(sp); else if (sp.wait && !sp.manual) idleFacing(sp, t); else roam(sp, t, dt); });
   sprites.slice().sort(function (p, q) { return p.depth - q.depth; }).forEach(function (sp) { drawSprite(sp, t); drawBadge(sp); drawBubble(sp); });
 
   particles = particles.filter(function (p) { return p.age < p.life; });
@@ -843,6 +990,7 @@ function step(now) {
     }
     g.restore();
   });
+  drawMission(t);
   drawDuelBar();
   texts = texts.filter(function (x) { return x.age < x.life; });
   texts.forEach(function (x) {
@@ -891,16 +1039,16 @@ requestAnimationFrame(step);
     var b = cur().band;
     if ((sp.motion === 'swim' || sp.motion === 'clam') && dy < 0 && b.swim && sp.y <= H*b.swim[0] + 4) { stuck(sp, '물 밖으론 못 나가!'); return 'stuck'; }   // 물고기·잠수함은 수면 위로 못 간다
     if (sp.motion === 'fly' && dy > 0 && b.sky && sp.y >= H*b.sky[1] - 4) { stuck(sp, '더는 못 내려가!'); return 'stuck'; }
-    sp.manual = { dx: dx, dy: dy, until: performance.now() + 3500 }; sp.rising = false;
+    sp.manual = { dx: dx, dy: dy, until: performance.now() + 3500 }; sp.rising = false; sp.lastInput = performance.now();
     return true;
   }
   function stuck(sp, text) { if (!sp.chat || sp.chat.text !== text) sp.chat = { text: text, at: performance.now(), until: performance.now() + 2500 }; }
   function friendsById(idA, idB) { var a = findSprite(idA), b = findSprite(idB); if (!a || !b) return false; endScene(); a.manual = null; b.manual = null; return friends([a, b]); }
   /* 화면 안 그림들의 위치(0~1 비율). 아이 화면의 '가까운 친구' 판단용 */
-  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0 }; }); return o; }
+  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0, hold: sp.holding ? 1 : 0 }; }); return o; }
   function nearestDemo(id, maxFrac) { var me = findSprite(id); if (!me) return null; var best = null, bd = (maxFrac || 0.35)*W;
     sprites.forEach(function (sp) { if (!sp.demo || sp === me || sp.x < 0 || sp.x > W) return; var d = Math.hypot(sp.x - me.x, sp.y - me.y); if (d < bd) { bd = d; best = sp; } }); return best; }
-  function dash(id, secs) { var sp = findSprite(id); if (!sp) return; sp.speed *= 3; setTimeout(function () { sp.speed /= 3; }, (secs || 4)*1000); }
+  function dash(id, secs) { var sp = findSprite(id); if (!sp) return; if (sp.wait) { sp.wait.wait = null; sp.wait = null; } sp.speed *= 3; setTimeout(function () { sp.speed /= 3; }, (secs || 4)*1000); }
   function flee(id, fromId) { var sp = findSprite(id), f = findSprite(fromId); if (!sp) return; sp.dir = f && f.x > sp.x ? -1 : 1; sp.manual = null; dash(id, 3); if (sp.jumpT === undefined) sp.jumpT = (performance.now() - t0)/1000; }
   function chat(id, text) {
     var sp = findSprite(id); if (!sp) return false;
@@ -911,6 +1059,7 @@ requestAnimationFrame(step);
   return {
     add: add, clear: clear, removeSprite: removeSprite, control: control, chat: chat, find: findSprite, duel: duel, friendsById: friendsById, positions: positions,
     nearestDemo: nearestDemo, dash: dash, flee: flee,
+    missionStart: missionStart, missionStop: function () { missionStop(false); }, grab: grab, mission: function () { return M ? { type: M.type, left: M.trash.length, ended: M.ended, bin: { x: M.bin.x, y: M.bin.y }, trash: M.trash.map(function (t) { return { x: t.x, y: t.y, held: t.held, kind: t.kind }; }), score: M.score } : null; },
     duelScores: function (sa, sb) { if (scene && scene.name === 'duel') scene.setScores(sa, sb); }, sceneName: function () { return scene ? scene.name : null; }, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
     friends: function () { endScene(); friends(pickTwo()); }, tournament: function () { endScene(); tournament(); }, dance: function () { endScene(); dance(); }, endScene: endScene,
     setAuto: function (v) { autoPlay = !!v; }, getAuto: function () { return autoPlay; }, sound: Sound, cutout: cutoutPaper, parseAbilities: parseAbilities,

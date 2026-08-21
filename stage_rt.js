@@ -29,13 +29,18 @@ var StageRT = (function () {
   function watch(id) { if (!id || watched[id] === 2) return; watched[id] = 1; if (db) watchNow(id); }
   function watchNow(id) {
     if (watched[id] === 2) return; watched[id] = 2;
-    db.ref('room/ctrl/' + id).on('value', function (snap) { var v = snap.val(); if (v && v.t > startedAt - 5000) ctrlCb.forEach(function (f) { f(id, v.dx, v.dy); }); });
+    var lastN = {};
+    db.ref('room/ctrl/' + id).on('value', function (snap) { var v = snap.val(); if (!v || v.t <= startedAt - 5000) return;
+      if (v.act && v.n !== lastN[id]) { lastN[id] = v.n; ctrlCb.forEach(function (f) { f(id, 0, 0, v.act); }); return; }
+      ctrlCb.forEach(function (f) { f(id, v.dx, v.dy); }); });
   }
   function unwatch(id) { if (db && watched[id]) db.ref('room/ctrl/' + id).off(); delete watched[id]; }
   function initServer(cfg) { mode = (cfg.exec || '').trim() ? 'server' : 'local'; return mode; }
   /* 아이 → */
-  function sendCtrl(id, dx, dy) {
-    if (mode === 'firebase') { db.ref('room/ctrl/' + id).set({ dx: dx, dy: dy, t: firebase.database.ServerValue.TIMESTAMP }); return; }
+  var actN = 0;
+  function sendCtrl(id, dx, dy, act) {
+    if (mode === 'firebase') { var v = { dx: dx, dy: dy, t: firebase.database.ServerValue.TIMESTAMP }; if (act) { v.act = act; v.n = ++actN; } db.ref('room/ctrl/' + id).set(v); return; }
+    if (act) { if (mode === 'server') { StageServer.call('ctrl', { id: id, dx: 0, dy: 0, act: act }); } else StageBus.send({ type: 'ctrl', id: id, dx: 0, dy: 0, act: act }); return; }
     if (mode === 'server') { pending[id] = { type: 'ctrl', id: id, dx: dx, dy: dy }; if (!flushTimer) flushTimer = setTimeout(flush, 700); return; }
     StageBus.send({ type: 'ctrl', id: id, dx: dx, dy: dy });
   }
@@ -49,7 +54,7 @@ var StageRT = (function () {
   /* 프로젝터 ← (서버·창 간 통신 경로는 StageBus 메시지로 들어온다) */
   function onCtrl(f) { ctrlCb.push(f); } function onChat(f) { chatCb.push(f); }
   StageBus.on(function (m) {
-    if (m.type === 'ctrl') ctrlCb.forEach(function (f) { f(m.id, m.dx, m.dy); });
+    if (m.type === 'ctrl') ctrlCb.forEach(function (f) { f(m.id, m.dx, m.dy, m.act); });
     if (m.type === 'chat') chatCb.forEach(function (f) { f(m.id, m.text, m.seat, m.nick); });
   });
   /* ── 가까운 친구·친구하기·씨름 (Firebase 전용) ── */

@@ -28,7 +28,7 @@
 <div id="gate"><h1>스케치 무대</h1><p>화면을 한 번 누르면 시작합니다 (소리 켜짐)</p></div>
 <div id="qr"><img src="../assets/qr_kid.png" alt="아이 화면 QR"><div class="txt"><h1>스케치 무대</h1><p>① 폰 카메라로 QR을 찍어요</p><p>② 자리 번호와 별명을 정해요</p><p>③ 그림을 그려서 무대로 보내요</p><div class="u">jejugrapher.github.io/ai-class_sketrch/kid/</div></div></div>
 <div id="dev">
-  <button data-w="sea">바다</button><button data-w="village">마을</button><button data-w="night">마법의 밤</button>
+  <button data-w="sea">바다</button><button data-w="village">마을</button><button data-w="night">마법의 밤</button><button data-w="forest">숲</button>
   <button id="dFriend">친구</button><button id="dSsireum">씨름</button><button id="dDance">춤</button>
   <button id="dDemo">예시</button><button id="dRig">도안 예시</button><button id="dWorld">아이배경 예시</button><button id="dClear">비우기</button>
 </div>
@@ -71,6 +71,7 @@ function addRigSamples() {
 StageBus.on(function (m) {
   switch (m.type) {
     case 'world':  E.setWorld(m.name); break;
+    case 'mission': if (m.name === 'stop') E.missionStop(); else { E.setWorld(m.name === 'sea' ? 'sea' : 'forest'); setTimeout(function () { E.missionStart(m.name); }, 1500); } break;
     case 'scene':  ({ friends: E.friends, tournament: E.tournament, dance: E.dance, end: E.endScene }[m.name] || function(){})(); break;
     case 'auto':   E.setAuto(m.on); break;
     case 'clear':  E.clear(); break;
@@ -85,7 +86,7 @@ StageBus.on(function (m) {
 });
 setInterval(function () { StageBus.send({ type: 'status', count: E.sprites().length, world: E.world() }); }, 3000);
 /* 아이 조종·채팅 */
-StageRT.onCtrl(function (id, dx, dy) { E.control(id, +dx || 0, +dy || 0); });
+StageRT.onCtrl(function (id, dx, dy, act) { if (act === 'grab') { E.grab(id); return; } E.control(id, +dx || 0, +dy || 0); });
 StageRT.onChat(function (id, text) { E.chat(id, text); });
 StageRT.init('stage').then(function (mode) {
   rtMode = mode; if (mode !== 'firebase') return;

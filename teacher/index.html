@@ -59,6 +59,7 @@
       <div class="card w on" data-w="sea"><div class="ph">🌊</div><p><b>제주 바다</b>참고래·산갈치·해녀·뗏목</p></div>
       <div class="card w" data-w="village"><div class="ph">🏝️</div><p><b>옛 포구 마을</b>초가·돌담·돛단배</p></div>
       <div class="card w" data-w="night"><div class="ph">🌙</div><p><b>마법의 밤</b>별자리·반딧불이, 규칙 없음</p></div>
+      <div class="card w" data-w="forest"><div class="ph">🌲</div><p><b>제주 숲</b>오름·나무·흙길</p></div>
     </div>
     <p class="muted" id="kidWorldsNote" style="margin:10px 0 0">아이들이 만든 배경은 "선생님께 보여주기"를 누르면 여기 아래에 나타납니다.</p>
     <div class="worlds" id="kidWorlds" style="margin-top:10px"></div>
@@ -72,6 +73,13 @@
       <button class="act big" id="bDance">춤 시간</button>
       <button id="bEnd">장면 끝내기</button>
     </div>
+    <h2 style="margin-top:14px">청소 미션</h2>
+    <div class="row">
+      <button class="act big" id="bSea">🧹 바다 청소 시작</button>
+      <button class="act big" id="bForest">🌲 숲 청소 시작</button>
+      <button id="bMissionEnd">청소 끝 · 순위 발표</button>
+    </div>
+    <p class="muted">아이들이 조종판의 [줍기]로 쓰레기를 주워 수거선(바다)·수거함(숲)에 [놓기]. 수거 장소 밖에서 놓으면 다시 떨어집니다. 쓰레기를 다 치우면 저절로 끝납니다.</p>
     <div class="row">
       <button id="bAuto">자동 놀이: 켬</button>
       <button id="bDemo">예시 넣기</button>
@@ -131,6 +139,9 @@ document.getElementById('bFriend').onclick  = function () { StageBus.send({ type
 document.getElementById('bSsireum').onclick = function () { StageBus.send({ type: 'scene', name: 'tournament' }); };
 document.getElementById('bDance').onclick   = function () { StageBus.send({ type: 'scene', name: 'dance' }); };
 document.getElementById('bEnd').onclick     = function () { StageBus.send({ type: 'scene', name: 'end' }); };
+document.getElementById('bSea').onclick     = function () { selectWorld('sea'); StageBus.send({ type: 'mission', name: 'sea' }); };
+document.getElementById('bForest').onclick  = function () { selectWorld('forest'); StageBus.send({ type: 'mission', name: 'forest' }); };
+document.getElementById('bMissionEnd').onclick = function () { StageBus.send({ type: 'mission', name: 'stop' }); };
 var bAuto = document.getElementById('bAuto');
 function showAuto() { bAuto.textContent = '자동 놀이: ' + (state.auto ? '켬' : '끔'); }
 bAuto.onclick = function () { state.auto = !state.auto; save(); showAuto(); StageBus.send({ type: 'auto', on: state.auto }); };

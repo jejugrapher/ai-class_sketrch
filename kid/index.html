@@ -220,11 +220,11 @@
 <!-- G 조종 -->
 <div class="page" id="pCtrl">
   <h2>무대에서 내 그림 움직이기</h2>
-  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요.<br>가라앉은 것은 못 움직이고, 물고기·잠수함은 물 밖으로 못 나가요(설명에 능력을 써 주면 달라져요).</p>
+  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요. 청소 시간에는 가운데 [줍기]로 쓰레기를 줍고, 수거선·수거함 옆에서 [놓기]!<br>가라앉은 것은 못 움직이고, 물고기·잠수함은 물 밖으로 못 나가요(설명에 능력을 써 주면 달라져요).</p>
   <div class="ctrlPick" id="ctrlPick"></div>
   <div class="pad">
     <span></span><button data-d="0,-1">▲</button><span></span>
-    <button data-d="-1,0">◀</button><button class="c" id="padStop">멈춤</button><button data-d="1,0">▶</button>
+    <button data-d="-1,0">◀</button><button id="padGrab" style="background:#2ec4b6;font-size:20px">줍기</button><button data-d="1,0">▶</button>
     <span></span><button data-d="0,1">▼</button><span></span>
   </div>
   <h2>가까이 있는 친구</h2>
@@ -365,7 +365,8 @@ document.getElementById('enterBtn').onclick = function () {
 };
 var serverOn = false;
 StageServer.init('kid', { onOnline: function () { serverOn = true; } });
-function serverSave(it) { if (!serverOn) return Promise.resolve(null); return StageServer.call('saveItem', { seat: seat, nick: nick, item: it }); }
+var savePromises = {};
+function serverSave(it) { if (!serverOn) return Promise.resolve(null); var pr = StageServer.call('saveItem', { seat: seat, nick: nick, item: it }).catch(function () { return null; }); savePromises[it.id] = pr; return pr; }
 
 /* ───────── B 홈 ───────── */
 function applyAllow() {
@@ -629,7 +630,9 @@ function aiTransform(dataUrl, desc, ex) {
 }
 var lastAi = null;
 function sendSprite(it) {
-  if (serverOn) StageServer.call('send', { id: it.id, kind: 'sprite' });       // 서버가 프로젝터에 전달
+  if (serverOn) (savePromises[it.id] || Promise.resolve()).then(function () {    // 저장이 끝난 뒤 보낸다 (Drive 업로드 2~3초)
+    return StageServer.call('send', { id: it.id, kind: 'sprite' }).then(function (r) { if (!r || !r.ok) return new Promise(function (res) { setTimeout(res, 2500); }).then(function () { return StageServer.call('send', { id: it.id, kind: 'sprite' }); }); return r; });
+  }).then(function (r) { if (r && r.ok === false) msg('ctrlMsg', '무대로 보내지 못했어요. 다시 눌러 봐요', 'no'); });
   else StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, face: it.face, dataUrl: it.dataUrl, transparent: true });
   it.sent = true; save();
 }
@@ -698,7 +701,8 @@ document.querySelectorAll('.pad [data-d]').forEach(function (b) {
   ['pointerup', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function (e) { if (!b.classList.contains('on')) return; b.classList.remove('on'); setDir(0, 0); }); });   // 손가락이 살짝 움직여도 계속 누른 것으로
   b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 });
-document.getElementById('padStop').onclick = function () { setDir(0, 0); };
+document.getElementById('padGrab').addEventListener('pointerdown', function (e) { e.preventDefault(); if (!ctrlId) return; StageRT.sendCtrl(ctrlId, 0, 0, 'grab'); });
+function refreshGrabLabel() { var me = posMap[ctrlId]; var b = document.getElementById('padGrab'); b.textContent = me && me.hold ? '놓기' : '줍기'; b.style.background = me && me.hold ? '#e63946' : '#2ec4b6'; }
 function sendChat() { var t = document.getElementById('chatIn').value.trim(); if (!t || !ctrlId) return; StageRT.sendChat(ctrlId, seat, nick, t); document.getElementById('chatIn').value = ''; msg('ctrlMsg', '말풍선을 띄웠어요 💬', 'ok'); }
 document.getElementById('chatSend').onclick = sendChat;
 document.getElementById('chatIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
@@ -724,7 +728,7 @@ function renderNear() {
 }
 StageRT.init('kid').then(function (mode) {
   if (mode !== 'firebase') return;
-  StageRT.onPos(function (m) { posMap = m; if (document.getElementById('pCtrl').classList.contains('on')) renderNear(); });
+  StageRT.onPos(function (m) { posMap = m; if (document.getElementById('pCtrl').classList.contains('on')) { renderNear(); refreshGrabLabel(); } });
   /* 씨름 신청 받기 */
   StageRT.onReq(function (r, key) {
     if (r.type !== 'ssireum' || myItems().indexOf(r.to) < 0 || key === lastKey) return; lastKey = key;
@@ -769,7 +773,7 @@ function startMini() { renderStageWorlds(); renderStageItems(); }
 miniEngine = new StageEngine({ canvas: document.getElementById('mini'), soundBase: '../assets/sound/' });   // 오려내기·능력 판정에도 쓰므로 처음부터 만든다
 function renderStageWorlds() {
   var box = document.getElementById('stageWorlds'); box.innerHTML = '';
-  var opts = [['sea', '제주 바다'], ['village', '옛 포구 마을'], ['night', '마법의 밤']];
+  var opts = [['sea', '제주 바다'], ['village', '옛 포구 마을'], ['night', '마법의 밤'], ['forest', '제주 숲']];
   store.items.filter(function (i) { return i.kind === 'world'; }).forEach(function (w) { opts.push(['my_' + w.id, '🗺️ ' + w.name]); });
   if (allow.gallery) Object.keys(gallery).forEach(function (id) { opts.push(['g_' + id, '👫 ' + gallery[id].name]); });
   opts.forEach(function (o) { var c = document.createElement('span'); c.className = 'chip' + (o[0] === curWorldKey ? ' on' : ''); c.textContent = o[1]; c.onclick = function () { useWorld(o[0]); }; box.appendChild(c); });
@@ -800,7 +804,7 @@ document.getElementById('mDance').onclick = function () { miniEngine.dance(); };
 document.getElementById('mSound').onclick = function () { miniEngine.sound.enable(); };
 document.getElementById('submitWorld').onclick = function () {
   var w = store.items.filter(function (i) { return 'my_' + i.id === curWorldKey; })[0]; if (!w) return;
-  if (serverOn) StageServer.call('send', { id: w.id, kind: 'world' });
+  if (serverOn) (savePromises[w.id] || Promise.resolve()).then(function () { return StageServer.call('send', { id: w.id, kind: 'world' }); });
   else StageBus.send({ type: 'submitWorld', id: w.id, seat: seat, nick: nick, name: w.name, kind: w.wkind, band: w.band, desc: w.desc, dataUrl: w.dataUrl });
   w.sent = true; save(); msg('stageMsg', '선생님께 보냈어요! 선생님이 고르면 프로젝터에 나와요.', 'ok');
 };

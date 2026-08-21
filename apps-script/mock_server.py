@@ -23,7 +23,7 @@ def route(r):
         it['state'] = 'submitted' if r.get('kind') == 'world' else 'sent'
         if it['state'] == 'sent': it['seq'] = push({"type": "spriteReady", "id": it['id']})
         return {"ok": True}
-    if a == 'ctrl': push({"type": "ctrl", "id": r['id'], "dx": r.get('dx', 0), "dy": r.get('dy', 0)}); return {"ok": True}
+    if a == 'ctrl': push({"type": "ctrl", "id": r['id'], "dx": r.get('dx', 0), "dy": r.get('dy', 0), "act": r.get('act', '')}); return {"ok": True}
     if a == 'chat': push({"type": "chat", "id": r['id'], "seat": r.get('seat'), "nick": r.get('nick', ''), "text": str(r.get('text', ''))[:40]}); return {"ok": True}
     if a == 'ai': return {"ok": True, "dataUrl": r['dataUrl'], "cat": "fish", "abil": None, "left": 9}
     if a == 'poll':
