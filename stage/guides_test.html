@@ -1,0 +1,4 @@
+<!doctype html><html><head><meta charset="utf-8"><title>guides</title><style>body{margin:0;background:#fff;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px}div{text-align:center;font:14px sans-serif}canvas{width:100%;border:1px solid #ddd}</style></head><body>
+<script src="../stage_guides.js"></script>
+<script>StageGuides.names.forEach(function(n){var d=document.createElement('div');var c=document.createElement('canvas');c.width=500;c.height=500;StageGuides.draw(n,c.getContext('2d'),500);d.appendChild(c);d.appendChild(document.createTextNode(n));document.body.appendChild(d);});</script>
+</body></html>

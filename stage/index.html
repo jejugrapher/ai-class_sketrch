@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Sketch Stage — Projector</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin:0; height:100%; background:#03132b; overflow:hidden; font-family:-apple-system, "Apple SD Gothic Neo", sans-serif; }
+  canvas { display:block; width:100vw; height:100vh; }
+  #gate { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+          background:rgba(0,10,30,.82); color:#fff; cursor:pointer; }
+  #gate h1 { font-size:44px; margin:0; }
+  #gate p { font-size:20px; opacity:.85; margin:0; }
+  #gate.off { display:none; }
+  #dev { position:fixed; left:12px; bottom:12px; display:none; flex-wrap:wrap; gap:6px; background:rgba(0,0,0,.55); padding:8px; border-radius:10px; }
+  #dev.on { display:flex; }
+  #dev button { background:#1f6feb; color:#fff; border:0; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer; }
+  #tag { position:fixed; right:14px; top:10px; color:rgba(255,255,255,.55); font-size:14px; pointer-events:none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="tag"></div>
+<div id="gate"><h1>스케치 무대</h1><p>화면을 한 번 누르면 시작합니다 (소리 켜짐)</p></div>
+<div id="dev">
+  <button data-w="sea">바다</button><button data-w="village">마을</button><button data-w="night">마법의 밤</button>
+  <button id="dFriend">친구</button><button id="dSsireum">씨름</button><button id="dDance">춤</button>
+  <button id="dDemo">예시</button><button id="dWorld">아이배경 예시</button><button id="dClear">비우기</button>
+</div>
+<script src="../stage_engine.js"></script>
+<script src="../stage_demos.js"></script>
+<script src="../stage_bus.js"></script>
+<script>
+var tag = document.getElementById('tag');
+var E = new StageEngine({ canvas: document.getElementById('c'), soundBase: '../assets/sound/',
+  onCount: function (n) { tag.textContent = (E.custom[E.world()] ? E.custom[E.world()].name : E.worlds[E.world()].name) + ' · ' + n + '개'; },
+  onWorld: function (w) { tag.textContent = (E.custom[w] ? E.custom[w].name : E.worlds[w].name) + ' · ' + E.sprites().length + '개'; } });
+tag.textContent = '제주 바다 · 0개';
+
+/* 첫 터치: 소리 허용 + 전체화면 */
+var gate = document.getElementById('gate');
+gate.onclick = function () { E.sound.enable(); gate.classList.add('off'); if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {}); };
+
+/* 이미지 데이터 → 스프라이트 (흰 배경 오려내기 포함) */
+function addFromData(msg) {
+  var im = new Image();
+  im.onload = function () { var cut = msg.transparent ? toCanvas(im) : E.cutout(im, 512); if (cut) E.add(cut, msg); };
+  im.src = msg.dataUrl || msg.url;
+}
+function toCanvas(im) { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c; }
+
+/* 강사 명령 받기 */
+StageBus.on(function (m) {
+  switch (m.type) {
+    case 'world':  E.setWorld(m.name); break;
+    case 'scene':  ({ friends: E.friends, tournament: E.tournament, dance: E.dance, end: E.endScene }[m.name] || function(){})(); break;
+    case 'auto':   E.setAuto(m.on); break;
+    case 'clear':  E.clear(); break;
+    case 'demo':   StageDemos.all(function (im, cat, desc) { E.add(E.cutout(im, 512), { seat: Math.ceil(Math.random()*15), nick: StageDemos.NICKS[Math.floor(Math.random()*12)], cat: cat, desc: desc }); }); break;
+    case 'sprite': addFromData(m); break;
+    case 'remove': E.removeSprite(m.id); break;
+    case 'defineWorld': (function () { var im = new Image(); im.onload = function () { E.defineWorld(m.id, { name: m.name, kind: m.kind, band: m.band, desc: m.desc, img: im }); if (m.show) E.setWorld(m.id); }; im.src = m.dataUrl || m.url; })(); break;
+    case 'sound':  if (m.on) E.sound.enable(); else E.sound.on = false; break;
+    case 'ping':   StageBus.send({ type: 'status', count: E.sprites().length, world: E.world() }); break;
+  }
+});
+setInterval(function () { StageBus.send({ type: 'status', count: E.sprites().length, world: E.world() }); }, 3000);
+
+/* 개발용 조작판: ?dev=1 */
+if (/[?&]dev=1/.test(location.search)) {
+  document.getElementById('dev').classList.add('on');
+  document.querySelectorAll('#dev [data-w]').forEach(function (b) { b.onclick = function () { E.setWorld(b.dataset.w); }; });
+  document.getElementById('dFriend').onclick = E.friends; document.getElementById('dSsireum').onclick = E.tournament; document.getElementById('dDance').onclick = E.dance;
+  document.getElementById('dClear').onclick = E.clear;
+  document.getElementById('dDemo').onclick = function () { StageBus.send({ type: 'demo' }); StageDemos.all(function (im, cat, desc) { E.add(E.cutout(im, 512), { seat: Math.ceil(Math.random()*15), nick: StageDemos.NICKS[Math.floor(Math.random()*12)], cat: cat, desc: desc }); }); };
+  /* 아이가 그린 배경 흉내: 크레용 느낌의 '화산섬과 바다' (물·땅·하늘) */
+  document.getElementById('dWorld').onclick = function () {
+    var cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; var c = cv.getContext('2d');
+    c.fillStyle = '#ffd9a0'; c.fillRect(0, 0, 1280, 360); c.fillStyle = '#ff8c42'; c.beginPath(); c.arc(1000, 120, 70, 0, 6.3); c.fill();
+    c.fillStyle = '#7a4b2a'; c.beginPath(); c.moveTo(200, 360); c.lineTo(520, 90); c.lineTo(840, 360); c.fill(); c.fillStyle = '#ff3b1f'; c.beginPath(); c.moveTo(480, 120); c.lineTo(520, 60); c.lineTo(560, 120); c.fill();
+    c.fillStyle = '#4cc3e8'; c.fillRect(0, 360, 1280, 260); c.fillStyle = '#e8d28a'; c.fillRect(0, 620, 1280, 100);
+    c.strokeStyle = '#333'; c.lineWidth = 6; c.strokeRect(3, 3, 1274, 714);
+    E.defineWorld('kid1', { name: '7번 번개상어의 화산섬', kind: 'all', band: { surface: 0.5, bottom: 0.86 }, desc: '용암이 흐르는 화산섬과 바다', img: cv });
+    E.setWorld('kid1');
+  };
+}
+</script>
+</body>
+</html>

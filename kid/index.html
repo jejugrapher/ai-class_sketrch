@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Sketch Stage — Kid</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:#fffaf0; color:#1b2533; font-family:-apple-system, "Apple SD Gothic Neo", sans-serif; font-size:17px; }
+  header { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:10px; padding:10px 14px; background:#ff9f1c; color:#fff; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.25); color:#fff; border:0; border-radius:8px; padding:8px 12px; font-size:15px; }
+  .page { display:none; padding:14px; max-width:720px; margin:0 auto; }
+  .page.on { display:block; }
+  h2 { font-size:20px; margin:6px 0 12px; }
+  .btn { display:inline-block; border:0; border-radius:14px; padding:14px 18px; font-size:18px; font-weight:bold; cursor:pointer; background:#e6ebf2; color:#1b2533; }
+  .btn.p { background:#ff9f1c; color:#fff; }
+  .btn.g { background:#2ec4b6; color:#fff; }
+  .btn.b { background:#1f6feb; color:#fff; }
+  .btn.wide { width:100%; margin-top:10px; }
+  .btn:disabled { opacity:.4; }
+  .grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; }
+  .grid .btn { padding:14px 0; text-align:center; font-size:20px; }
+  .grid .btn.on { background:#ff9f1c; color:#fff; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+  .chip { border:2px solid #ffd166; background:#fff; border-radius:999px; padding:8px 14px; font-size:16px; cursor:pointer; }
+  .chip.on { background:#ffd166; }
+  input[type=text], textarea { width:100%; font-size:18px; padding:12px; border:2px solid #e6ebf2; border-radius:12px; font-family:inherit; }
+  textarea { min-height:72px; resize:none; }
+  .cards { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+  .card { background:#fff; border:3px solid #e6ebf2; border-radius:14px; padding:10px 6px; text-align:center; cursor:pointer; }
+  .card.on { border-color:#ff9f1c; }
+  .card .ic { font-size:30px; line-height:64px; }
+  .card .nm { font-size:14px; margin-top:4px; }
+  .canvasWrap { position:relative; width:100%; background:#fff; border:3px solid #e6ebf2; border-radius:14px; overflow:hidden; touch-action:none; }
+  .canvasWrap canvas { display:block; width:100%; height:100%; }
+  #guide, #lines { position:absolute; inset:0; pointer-events:none; }
+  #lines { pointer-events:auto; }
+  .tools { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; align-items:center; }
+  .sw { width:34px; height:34px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #ddd; cursor:pointer; }
+  .sw.on { box-shadow:0 0 0 3px #1b2533; }
+  .size { width:34px; height:34px; border-radius:50%; background:#eee; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .size.on { background:#ffd166; }
+  .size i { background:#1b2533; border-radius:50%; display:block; }
+  .tool { border:0; background:#e6ebf2; border-radius:10px; padding:8px 12px; font-size:15px; }
+  .tool.on { background:#ffd166; }
+  .items { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+  .item { background:#fff; border:2px solid #e6ebf2; border-radius:12px; overflow:hidden; position:relative; }
+  .item img { width:100%; aspect-ratio:1; object-fit:contain; background:#f6f8fb; display:block; }
+  .item.world img { aspect-ratio:16/9; object-fit:cover; }
+  .item p { margin:0; padding:6px; font-size:13px; line-height:1.3; }
+  .item .tag { position:absolute; top:6px; left:6px; background:#2ec4b6; color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
+  .msg { background:#fff3cd; border-radius:12px; padding:12px; margin:10px 0; font-size:16px; }
+  .msg.ok { background:#d1fae5; }
+  .msg.no { background:#fee2e2; }
+  .hline { position:absolute; left:0; right:0; height:0; border-top:3px dashed #1f6feb; }
+  .hline span { position:absolute; left:8px; top:-30px; background:#1f6feb; color:#fff; font-size:13px; padding:4px 8px; border-radius:8px; }
+  .hline.ground { border-color:#b45309; } .hline.ground span { background:#b45309; }
+  .handle { position:absolute; right:8px; top:-22px; width:44px; height:44px; border-radius:50%; background:#fff; border:3px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:20px; touch-action:none; }
+  .preview { width:100%; aspect-ratio:16/9; background:#03132b; border-radius:14px; overflow:hidden; }
+  .preview canvas { width:100%; height:100%; display:block; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+  .row .btn { flex:1; text-align:center; }
+  .small { font-size:14px; color:#556; }
+  #photoIn { display:none; }
+  #sheet { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:flex-end; z-index:20; }
+  #sheet.on { display:flex; }
+  #sheet .box { background:#fff; width:100%; border-radius:20px 20px 0 0; padding:16px 16px 28px; }
+  #sheet img { width:100%; max-height:200px; object-fit:contain; background:#f6f8fb; border-radius:12px; }
+  #sheet .btn { width:100%; margin-top:10px; text-align:left; }
+  #sheet .btn small { display:block; font-weight:normal; font-size:13px; opacity:.85; }
+</style>
+</head>
+<body>
+<header><h1 id="title">스케치 무대</h1><span id="who"></span><button id="home" style="display:none">내 보관함</button></header>
+
+<!-- A 입장 -->
+<div class="page on" id="pEnter">
+  <h2>내 자리 번호를 골라요</h2>
+  <div class="grid" id="seatGrid"></div>
+  <h2 style="margin-top:18px">별명을 정해요</h2>
+  <input type="text" id="nick" placeholder="별명을 쓰거나 아래에서 골라요" maxlength="10">
+  <div class="chips" id="nickChips"></div>
+  <p class="small">진짜 이름 말고 별명으로 써요. 무대에서 "7번 번개상어"처럼 보여요.</p>
+  <button class="btn p wide" id="enterBtn">들어가기</button>
+</div>
+
+<!-- B 홈 -->
+<div class="page" id="pHome">
+  <div class="row">
+    <button class="btn p" id="goDraw">✏️ 그림 만들기</button>
+    <button class="btn g" id="goWorld">🗺️ 배경 만들기</button>
+    <button class="btn b" id="goStage">🎬 내 무대</button>
+  </div>
+  <div id="allowNote" class="msg"></div>
+  <h2>내가 만든 것</h2>
+  <div class="items" id="myItems"></div>
+  <p class="small" id="emptyNote">아직 없어요. 그림 만들기를 눌러 볼까요?</p>
+</div>
+
+<!-- C 그림 만들기 -->
+<div class="page" id="pDraw">
+  <h2>무엇을 그릴까요?</h2>
+  <div class="cards" id="exhibits"></div>
+  <div id="drawArea" style="display:none">
+    <h2 style="margin-top:16px">그려요 <span class="small" id="guideNote"></span></h2>
+    <div class="canvasWrap" style="aspect-ratio:1">
+      <canvas id="guide"></canvas>
+      <canvas id="draw"></canvas>
+    </div>
+    <div class="tools" id="palette"></div>
+    <div class="tools">
+      <div class="size on" data-s="6"><i style="width:6px;height:6px"></i></div>
+      <div class="size" data-s="14"><i style="width:12px;height:12px"></i></div>
+      <div class="size" data-s="26"><i style="width:20px;height:20px"></i></div>
+      <button class="tool" id="eraser">지우개</button>
+      <button class="tool" id="undo">되돌리기</button>
+      <button class="tool" id="clearDraw">다 지우기</button>
+      <button class="tool" id="guideToggle">도안 끄기</button>
+      <label class="tool" id="photoBtn" style="display:none">📷 사진<input type="file" id="photoIn" accept="image/*" capture="environment"></label>
+    </div>
+    <h2>이 그림을 설명해요</h2>
+    <textarea id="desc" placeholder="예: 밤바다에서 별빛을 받으며 천천히 헤엄치는 고래"></textarea>
+    <div class="chips" id="tags"></div>
+    <div class="row">
+      <button class="btn b" id="aiBtn">✨ AI로 바꾸기</button>
+      <button class="btn g" id="rawBtn">그대로 쓰기</button>
+    </div>
+    <p class="small" id="finishNote">완성 버튼은 선생님이 열어 주면 여기에 나타나요.</p>
+    <div id="drawMsg"></div>
+    <div id="resultBox" style="display:none">
+      <h2>완성!</h2>
+      <img id="resultImg" style="width:100%;max-height:300px;object-fit:contain;background:#f6f8fb;border-radius:14px">
+      <div class="row">
+        <button class="btn p" id="sendSprite">🎬 무대로 보내기</button>
+        <button class="btn" id="keepSprite">보관함에만 두기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- D 배경 만들기 -->
+<div class="page" id="pWorld">
+  <h2>어떤 곳인가요?</h2>
+  <div class="cards" id="kinds">
+    <div class="card" data-k="water"><div class="ic">🌊</div><div class="nm">물속</div></div>
+    <div class="card" data-k="landsky"><div class="ic">🏞️</div><div class="nm">땅과 하늘</div></div>
+    <div class="card" data-k="all"><div class="ic">🏝️</div><div class="nm">물·땅·하늘</div></div>
+    <div class="card" data-k="free"><div class="ic">🌌</div><div class="nm">규칙 없는 곳</div></div>
+  </div>
+  <div id="worldArea" style="display:none">
+    <h2 style="margin-top:16px">배경을 그려요</h2>
+    <div class="canvasWrap" style="aspect-ratio:16/9">
+      <canvas id="wdraw"></canvas>
+      <div id="lines"></div>
+    </div>
+    <div class="tools" id="wpalette"></div>
+    <div class="tools">
+      <div class="size wsize on" data-s="8"><i style="width:6px;height:6px"></i></div>
+      <div class="size wsize" data-s="24"><i style="width:12px;height:12px"></i></div>
+      <div class="size wsize" data-s="60"><i style="width:20px;height:20px"></i></div>
+      <button class="tool" id="wfill">바탕 채우기</button>
+      <button class="tool" id="wundo">되돌리기</button>
+      <button class="tool" id="wclear">다 지우기</button>
+      <label class="tool" id="wphotoBtn" style="display:none">📷 사진<input type="file" id="wphotoIn" accept="image/*" capture="environment"></label>
+    </div>
+    <p class="small" id="lineNote">파란 선 = 물 표면, 갈색 선 = 땅. 동그라미를 잡고 위아래로 옮겨요.</p>
+    <h2>이곳 이름과 설명</h2>
+    <input type="text" id="wname" placeholder="예: 번개상어의 화산섬" maxlength="16">
+    <textarea id="wdesc" placeholder="예: 용암이 흐르는 화산섬 옆 바다. 위에는 무지개가 떠요" style="margin-top:8px"></textarea>
+    <div class="chips" id="wtags"></div>
+    <div class="row">
+      <button class="btn g" id="saveWorld">저장하고 내 무대에서 보기</button>
+    </div>
+    <div id="worldMsg"></div>
+  </div>
+</div>
+
+<!-- E 내 무대 -->
+<div class="page" id="pStage">
+  <div class="preview"><canvas id="mini"></canvas></div>
+  <div class="chips" id="stageWorlds"></div>
+  <div class="row">
+    <button class="btn" id="mFriend">친구</button><button class="btn" id="mSsireum">씨름</button><button class="btn" id="mDance">춤</button><button class="btn" id="mSound">🔊</button>
+  </div>
+  <h2>무대에 올릴 내 그림</h2>
+  <div class="items" id="stageItems"></div>
+  <div class="row">
+    <button class="btn g" id="submitWorld">🙋 이 배경을 선생님께 보여주기</button>
+  </div>
+  <div id="stageMsg"></div>
+</div>
+
+<div id="sheet"><div class="box">
+  <h2>이 사진을 어떻게 할까요?</h2>
+  <img id="sheetImg">
+  <button class="btn p" id="optCut">🎯 사진 속 대상만 오려서 그림으로<small>배경을 지우고 대상만 남겨요. 그 위에 더 그려도 돼요</small></button>
+  <button class="btn g" id="optBg">🖼️ 이대로 배경(장소)으로<small>배경 만들기로 가서 물·땅 선을 정해요</small></button>
+  <button class="btn" id="optTrace" style="background:#ffd166">🔍 흐리게 깔고 따라 그리기<small>사진이 연하게 깔려요. 그 위에 선을 그리면 내 그림만 남아요</small></button>
+  <button class="btn b" id="optAi">✨ AI로 바꾸기<small>설명을 쓰면 AI가 무대에 어울리는 그림으로 만들어요</small></button>
+  <button class="btn" id="optCancel">취소</button>
+</div></div>
+<script src="../stage_engine.js"></script>
+<script src="../stage_demos.js"></script>
+<script src="../stage_guides.js"></script>
+<script src="../stage_bus.js"></script>
+<script>
+/* ───────── 자료 ───────── */
+var NICKS = ['번개상어','무지개고래','용감한게','반짝별','바다친구','초록거북','노랑오리','하늘새','씩씩이','방글이','테우선장','해녀삼춘'];
+var EXHIBITS = [
+  { id:'whale',    ic:'🐋', nm:'참고래',       cat:'whale',   guide:'whale',    tags:['밤바다에서','별빛을 받으며','새끼와 함께','물 위로 뛰어오르며','천천히 헤엄치는','노래를 부르는'] },
+  { id:'oarfish',  ic:'🐟', nm:'산갈치',       cat:'fish',    guide:'oarfish',  tags:['은색으로 반짝이며','깊은 바다에서','리본처럼 춤추며','빨간 지느러미를 펄럭이며'] },
+  { id:'crab',     ic:'🦀', nm:'게',           cat:'crawler', guide:'crab',     tags:['옆으로 걸으며','바위 위에서','집게를 흔들며','모래 속에 숨어'] },
+  { id:'clam',     ic:'🐚', nm:'조개',         cat:'crawler', guide:'clam',     tags:['입을 벌렸다 닫으며','진주를 품고','모래 속에서','물을 뿜으며'] },
+  { id:'conch',    ic:'🐌', nm:'소라',         cat:'crawler', guide:'conch',    tags:['뿔을 세우고','바위를 기어가며','파도 소리를 담고','천천히'] },
+  { id:'raft',     ic:'🪵', nm:'뗏목',         cat:'boat',    guide:'raft',     tags:['노를 저으며','파도를 넘어','물고기를 싣고','친구를 태우고'] },
+  { id:'sailboat', ic:'⛵', nm:'돛단배',       cat:'boat',    guide:'sailboat', tags:['바람을 받아','멀리 떠나는','포구로 돌아오는','돛을 활짝 펴고'] },
+  { id:'haenyeo',  ic:'🤿', nm:'해녀',         cat:'person',  guide:'haenyeo',  tags:['숨을 참고','전복을 따며','태왁을 안고','물질하러 가는','휘파람 숨비소리'] },
+  { id:'mother',   ic:'👩‍👧', nm:'구덕 진 모자', cat:'person', guide:'mother',   tags:['장에 가는 길에','무거운 짐을 지고','웃으며','돌담길을 따라'] },
+  { id:'waterjar', ic:'🏺', nm:'물허벅',       cat:'heavy',   guide:'waterjar', tags:['물을 가득 담고','용천수 옆에서','출렁출렁','조심조심'] },
+  { id:'drums',    ic:'🥁', nm:'북·장구·징',    cat:'heavy',   guide:'drums',    tags:['둥둥 울리며','신나게','춤추듯이','다 같이'] },
+  { id:'bird',     ic:'🐦', nm:'새',           cat:'bird',    guide:'bird',     tags:['하늘 높이','날개를 펴고','바람을 타고','노래하며'] },
+  { id:'person',   ic:'🧒', nm:'사람',         cat:'person',  guide:'person',   tags:['손을 흔들며','달리는','헤엄치는','웃으며','춤추는'] },
+  { id:'car',      ic:'🚗', nm:'자동차',       cat:'vehicle', guide:'car',      tags:['빠르게 달리는','물속을 날아다니는','빵빵 경적을 울리며','반짝이는'] },
+  { id:'airplane', ic:'✈️', nm:'비행기',       cat:'aircraft', guide:'airplane', tags:['구름 위를 날며','하늘을 가르며','빙글 돌며','착륙하는'] },
+  { id:'paperplane', ic:'🛩️', nm:'종이비행기', cat:'light',   guide:'paperplane', tags:['바람에 실려','살랑살랑','멀리 날아가는','빙글 도는'] },
+  { id:'submarine', ic:'🚢', nm:'잠수함',      cat:'sub',     guide:'submarine', tags:['깊은 바다로','잠망경을 올리고','거품을 내며','조용히'] },
+  { id:'photo',    ic:'📷', nm:'사진 따라 그리기', cat:'fish', guide:null,      tags:['날아다니는','헤엄치는','뛰어오르는','걸어다니는','떠다니는','반짝이는'] },
+  { id:'free',     ic:'🎨', nm:'내 마음대로',   cat:'fish',    guide:null,       tags:['날아다니는','헤엄치는','뛰어오르는','반짝이는','커다란','아주 작은','웃고 있는'] }
+];
+var COMMON_TAGS = ['친구와 함께','신나게 춤추며','씨름을 하며','빙글빙글 돌며'];
+var WORLD_TAGS = ['용암이 흐르는','무지개가 뜬','별이 가득한','파도가 치는','돌담이 있는','눈이 내리는','사탕으로 만든','아주 깊은'];
+var COLORS = ['#1b2533','#e63946','#ff9f1c','#ffd166','#2ec4b6','#1f6feb','#8338ec','#ff7ab6','#7a4b2a','#8fa3b8','#ffffff','#4caf50'];
+
+/* ───────── 저장 (지금은 이 기기 안. 서버 연결 후 서버에도) ───────── */
+var seat = null, nick = '', store = null;
+function load() { store = JSON.parse(localStorage.getItem('kid_' + seat) || '{"items":[]}'); }
+function save() { localStorage.setItem('kid_' + seat, JSON.stringify(store)); }
+var allow = JSON.parse(localStorage.getItem('teacherAllow') || '{"draw":true,"photo":false,"ai":false,"raw":false,"world":false,"gallery":false}');
+if (/[?&]all=1/.test(location.search)) allow = { draw: true, photo: true, ai: true, raw: true, world: true, gallery: true };   // 시험용: 전부 열기
+StageBus.on(function (m) {
+  if (m.type === 'allow') { allow = m.allow; localStorage.setItem('teacherAllow', JSON.stringify(allow)); applyAllow(); }
+  if (m.type === 'wipe') { Object.keys(localStorage).filter(function (k) { return k.indexOf('kid_') === 0; }).forEach(function (k) { localStorage.removeItem(k); }); if (seat) { load(); renderHome(); } }
+  if (m.type === 'defineWorld' && m.show) { gallery[m.id] = m; }
+});
+var gallery = {};
+
+/* ───────── 화면 전환 ───────── */
+function show(id) { document.querySelectorAll('.page').forEach(function (p) { p.classList.toggle('on', p.id === id); }); window.scrollTo(0, 0); document.getElementById('home').style.display = (id === 'pEnter' || id === 'pHome') ? 'none' : ''; if (id === 'pStage') startMini(); }
+document.getElementById('home').onclick = function () { renderHome(); show('pHome'); };
+function msg(el, text, cls) { document.getElementById(el).innerHTML = text ? '<div class="msg ' + (cls || '') + '">' + text + '</div>' : ''; }
+
+/* ───────── A 입장 ───────── */
+var seatGrid = document.getElementById('seatGrid');
+for (var s = 1; s <= 15; s++) (function (n) { var b = document.createElement('button'); b.className = 'btn'; b.textContent = n; b.onclick = function () { seat = n; seatGrid.querySelectorAll('.btn').forEach(function (x) { x.classList.toggle('on', +x.textContent === n); }); var st = JSON.parse(localStorage.getItem('kid_' + n) || '{}'); if (st.nick) document.getElementById('nick').value = st.nick; }; seatGrid.appendChild(b); })(s);
+var nickChips = document.getElementById('nickChips');
+NICKS.forEach(function (n) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = n; c.onclick = function () { document.getElementById('nick').value = n; }; nickChips.appendChild(c); });
+document.getElementById('enterBtn').onclick = function () {
+  nick = document.getElementById('nick').value.trim();
+  if (!seat) { alert('자리 번호를 골라요'); return; }
+  if (!nick) { alert('별명을 정해요'); return; }
+  load(); store.nick = nick; save();
+  document.getElementById('who').textContent = seat + '번 ' + nick;
+  renderHome(); show('pHome');
+};
+
+/* ───────── B 홈 ───────── */
+function applyAllow() {
+  document.getElementById('goDraw').disabled = !allow.draw;
+  document.getElementById('goWorld').disabled = !allow.world;
+  document.getElementById('photoBtn').style.display = allow.photo ? '' : 'none';
+  var pc = document.querySelector('#exhibits .card[data-id="photo"]'); if (pc) pc.style.display = allow.photo ? '' : 'none';
+  document.getElementById('wphotoBtn').style.display = allow.photo ? '' : 'none';
+  document.getElementById('aiBtn').style.display = allow.ai ? '' : 'none';
+  document.getElementById('rawBtn').style.display = allow.raw ? '' : 'none';
+  document.getElementById('finishNote').style.display = (allow.ai || allow.raw) ? 'none' : '';
+  var open = [];
+  if (allow.draw) open.push('✏️ 그리기'); if (allow.photo) open.push('📷 사진'); if (allow.ai) open.push('✨ AI로 바꾸기'); if (allow.raw) open.push('그대로 쓰기'); if (allow.world) open.push('🗺️ 배경 만들기'); if (allow.gallery) open.push('👫 친구 배경');
+  var notes = [open.length ? '지금 열린 것: ' + open.join(' · ') : '선생님이 열어 주면 시작할 수 있어요.'];
+  if (allow.draw && !allow.ai && !allow.raw) notes.push('그림을 그려 두면, 선생님이 열어 줄 때 무대로 보낼 수 있어요.');
+  msg('allowNote', notes.join('<br>'), allow.draw ? 'ok' : '');
+}
+function renderHome() {
+  applyAllow();
+  var box = document.getElementById('myItems'); box.innerHTML = '';
+  store.items.slice().reverse().forEach(function (it) {
+    var d = document.createElement('div'); d.className = 'item' + (it.kind === 'world' ? ' world' : '');
+    d.innerHTML = '<img src="' + it.dataUrl + '">' + (it.sent ? '<span class="tag">무대에 보냄</span>' : '') + '<p>' + (it.kind === 'world' ? '🗺️ ' + (it.name || '내 배경') : (it.desc || it.catName || '그림')) + '</p>';
+    d.onclick = function () { if (it.kind === 'world') { show('pStage'); setTimeout(function () { useWorld('my_' + it.id); }, 300); } else { if (confirm('이 그림을 지금 무대로 보낼까요?')) sendSprite(it); } };
+    box.appendChild(d);
+  });
+  document.getElementById('emptyNote').style.display = store.items.length ? 'none' : '';
+}
+document.getElementById('goDraw').onclick = function () { resetDraw(); show('pDraw'); };
+document.getElementById('goWorld').onclick = function () { resetWorld(); show('pWorld'); };
+document.getElementById('goStage').onclick = function () { show('pStage'); };
+
+/* ───────── 그림판 공통 ───────── */
+function Painter(canvas, w, h, opts) {
+  canvas.width = w; canvas.height = h;
+  var c = canvas.getContext('2d'), color = '#1b2533', size = 6, eraser = false, hist = [], drawing = false, last = null;
+  if (opts && opts.bg) { c.fillStyle = opts.bg; c.fillRect(0, 0, w, h); }
+  function pos(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * w / r.width, y: (e.clientY - r.top) * h / r.height }; }
+  function snap() { hist.push(c.getImageData(0, 0, w, h)); if (hist.length > 20) hist.shift(); }
+  canvas.addEventListener('pointerdown', function (e) { e.preventDefault(); canvas.setPointerCapture(e.pointerId); snap(); drawing = true; last = pos(e); dot(last); });
+  canvas.addEventListener('pointermove', function (e) { if (!drawing) return; var p = pos(e); c.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'; c.strokeStyle = color; c.lineWidth = size; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(last.x, last.y); c.lineTo(p.x, p.y); c.stroke(); last = p; });
+  canvas.addEventListener('pointerup', function () { drawing = false; c.globalCompositeOperation = 'source-over'; });
+  function dot(p) { c.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'; c.fillStyle = color; c.beginPath(); c.arc(p.x, p.y, size/2, 0, 6.3); c.fill(); }
+  return {
+    setColor: function (v) { color = v; eraser = false; }, setSize: function (v) { size = v; }, setEraser: function (v) { eraser = v; },
+    undo: function () { var im = hist.pop(); if (im) c.putImageData(im, 0, 0); },
+    clear: function () { snap(); c.clearRect(0, 0, w, h); if (opts && opts.bg) { c.fillStyle = opts.bg; c.fillRect(0, 0, w, h); } },
+    fill: function () { snap(); c.globalCompositeOperation = 'destination-over'; c.fillStyle = color; c.fillRect(0, 0, w, h); c.globalCompositeOperation = 'source-over'; },
+    putImage: function (im) { snap(); c.clearRect(0, 0, w, h); var s = Math.min(w/im.width, h/im.height), dw = im.width*s, dh = im.height*s; c.drawImage(im, (w-dw)/2, (h-dh)/2, dw, dh); },
+    canvas: canvas, ctx: c, isEmpty: function () { var d = c.getImageData(0, 0, w, h).data; for (var i = 3; i < d.length; i += 4) if (d[i] > 10) return false; return true; }
+  };
+}
+function palette(el, painter, cls) {
+  el.innerHTML = '';
+  COLORS.forEach(function (col, i) { var d = document.createElement('div'); d.className = 'sw' + (i === 0 ? ' on' : ''); d.style.background = col; d.onclick = function () { painter.setColor(col); el.querySelectorAll('.sw').forEach(function (x) { x.classList.toggle('on', x === d); }); var er = document.getElementById('eraser'); if (er) er.classList.remove('on'); }; el.appendChild(d); });
+}
+
+/* ───────── C 그림 만들기 ───────── */
+var P = null, curEx = null, guideOn = true, result = null;
+var exBox = document.getElementById('exhibits');
+EXHIBITS.forEach(function (ex) {
+  var d = document.createElement('div'); d.className = 'card'; d.dataset.id = ex.id;
+  if (ex.guide) { var cv = document.createElement('canvas'); cv.width = 160; cv.height = 160; cv.style.width = '64px'; cv.style.height = '64px'; StageGuides.draw(ex.guide, cv.getContext('2d'), 160, { color: '#333', width: 4 }); d.appendChild(cv); }
+  else { var ic = document.createElement('div'); ic.className = 'ic'; ic.textContent = ex.ic; d.appendChild(ic); }
+  var nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = ex.nm; d.appendChild(nm);
+  d.onclick = function () { pickExhibit(ex, d); if (ex.id === 'photo') { photoForTrace = true; document.getElementById('photoIn').click(); } }; exBox.appendChild(d);
+});
+var photoForTrace = false;
+function resetDraw() { curEx = null; result = null; exBox.querySelectorAll('.card').forEach(function (c) { c.classList.remove('on'); }); document.getElementById('drawArea').style.display = 'none'; document.getElementById('resultBox').style.display = 'none'; document.getElementById('desc').value = ''; msg('drawMsg', ''); }
+function pickExhibit(ex, card) {
+  curEx = ex; traceMode = false; document.getElementById('guide').style.opacity = 1; exBox.querySelectorAll('.card').forEach(function (c) { c.classList.toggle('on', c === card); });
+  document.getElementById('drawArea').style.display = '';
+  var cv = document.getElementById('draw'); P = Painter(cv, 800, 800); palette(document.getElementById('palette'), P);
+  document.querySelectorAll('#pDraw .size').forEach(function (s, i) { s.classList.toggle('on', i === 0); });
+  drawGuide(ex);
+  var tg = document.getElementById('tags'); tg.innerHTML = '';
+  ex.tags.concat(COMMON_TAGS).forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { var ta = document.getElementById('desc'); ta.value = (ta.value.trim() + ' ' + t).trim(); }; tg.appendChild(c); });
+  document.getElementById('resultBox').style.display = 'none'; msg('drawMsg', '');
+  cv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function drawGuide(ex) {
+  var gc = document.getElementById('guide'); gc.width = 800; gc.height = 800; var c = gc.getContext('2d'); c.clearRect(0, 0, 800, 800);
+  document.getElementById('guideNote').textContent = ex.guide ? '(연한 도안 위에 그리거나 색칠해요)' : '(마음껏 그려요)';
+  document.getElementById('guideToggle').style.display = ex.guide ? '' : 'none';
+  if (!ex.guide || !guideOn) return;
+  StageGuides.draw(ex.guide, c, 800, { alpha: 0.45, color: '#555', width: 7 });   // 윤곽선 도안: 따라 그리거나 색칠
+}
+function cutoutPaperLike(im) { return miniEngine ? miniEngine.cutout(im, 512) : (function () { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c; })(); }
+document.querySelectorAll('#pDraw .size').forEach(function (s) { s.onclick = function () { P.setSize(+s.dataset.s); document.querySelectorAll('#pDraw .size').forEach(function (x) { x.classList.toggle('on', x === s); }); }; });
+document.getElementById('eraser').onclick = function () { var on = !this.classList.contains('on'); this.classList.toggle('on', on); P.setEraser(on); };
+document.getElementById('undo').onclick = function () { P.undo(); };
+document.getElementById('clearDraw').onclick = function () { if (confirm('다 지울까요?')) P.clear(); };
+document.getElementById('guideToggle').onclick = function () { guideOn = !guideOn; this.textContent = guideOn ? '도안 끄기' : '도안 켜기'; if (traceMode) { document.getElementById('guide').style.opacity = guideOn ? 1 : 0; } else drawGuide(curEx); };
+/* 사진 올리기 → 선택지 3개 */
+var photoImg = null, pendingBg = null;
+document.getElementById('photoIn').onchange = function (e) {
+  var f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  var im = new Image(); im.onload = function () { photoImg = shrink(im, 1280); if (photoForTrace) { photoForTrace = false; document.getElementById('optTrace').click(); return; } document.getElementById('sheetImg').src = photoImg.toDataURL('image/jpeg', 0.8); document.getElementById('sheet').classList.add('on'); }; im.src = URL.createObjectURL(f);
+};
+function shrink(im, max) { var s = Math.min(1, max/Math.max(im.width, im.height)); var c = document.createElement('canvas'); c.width = Math.round(im.width*s); c.height = Math.round(im.height*s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return c; }
+function closeSheet() { document.getElementById('sheet').classList.remove('on'); }
+document.getElementById('optCancel').onclick = closeSheet;
+/* ① 대상만 오리기: 지금은 밝은 단색 배경(흰 벽·종이·하늘)에서 잘 됨. 복잡한 배경은 서버 연결 후 AI 오리기 */
+document.getElementById('optCut').onclick = function () {
+  closeSheet(); var cut = miniEngine.cutout(photoImg, 800);
+  if (!cut) { msg('drawMsg', '대상을 찾지 못했어요. 밝은 배경에서 다시 찍어 볼까요?', 'no'); return; }
+  P.clear(); P.putImage(cut); P.photo = false;      // 이미 오려져 있으니 그대로 쓰기 가능
+  msg('drawMsg', '대상만 남겼어요. 남은 부분은 지우개로 지우고, 설명을 써요.', 'ok');
+};
+/* ④ 흐리게 깔고 따라 그리기: 사진은 도안(guide) 층에만 들어가고 결과엔 남지 않는다 */
+document.getElementById('optTrace').onclick = function () {
+  closeSheet(); var gc = document.getElementById('guide'), c = gc.getContext('2d'); c.clearRect(0, 0, 800, 800);
+  var s2 = Math.min(760/photoImg.width, 760/photoImg.height), dw = photoImg.width*s2, dh = photoImg.height*s2;
+  c.save(); c.globalAlpha = 0.3; c.filter = 'blur(1.5px) grayscale(0.4)'; c.drawImage(photoImg, (800-dw)/2, (800-dh)/2, dw, dh); c.restore();
+  P.clear(); P.photo = false; guideOn = true; document.getElementById('guideToggle').style.display = ''; document.getElementById('guideToggle').textContent = '도안 끄기'; traceMode = true;
+  msg('drawMsg', '사진이 연하게 깔렸어요. 선을 따라 그려 봐요. 사진은 결과에 안 남아요.', 'ok');
+};
+var traceMode = false;
+/* ② 그대로 배경으로: 배경 만들기로 이동, 종류를 고르면 사진이 깔림 */
+document.getElementById('optBg').onclick = function () {
+  closeSheet();
+  if (!allow.world) { msg('drawMsg', '선생님이 배경 만들기를 열어 주면 할 수 있어요', 'no'); return; }
+  pendingBg = photoImg; resetWorld(); show('pWorld'); msg('worldMsg', '어떤 곳인지 고르면 사진이 배경으로 깔려요', 'ok');
+};
+/* ③ AI로 바꾸기: 사진을 그림판에 올리고 설명 → AI 버튼 */
+document.getElementById('optAi').onclick = function () {
+  closeSheet(); P.clear(); P.putImage(photoImg); P.photo = true;
+  msg('drawMsg', allow.ai ? '사진을 한 줄로 설명하고 [AI로 바꾸기]를 눌러요' : '선생님이 AI로 바꾸기를 열어 주면 할 수 있어요', allow.ai ? 'ok' : 'no');
+  document.getElementById('desc').scrollIntoView({ behavior: 'smooth' });
+};
+
+/* 그림 → 무대용 이미지(투명 PNG). 사진이면 흰 배경 오려내기 */
+function spriteFromCanvas() {
+  var src = P.canvas;
+  if (P.photo) return miniEngine.cutout(src, 512);
+  var d = src.getContext('2d').getImageData(0, 0, src.width, src.height).data, minx = 800, miny = 800, maxx = -1, maxy = -1;
+  for (var y = 0; y < 800; y++) for (var x = 0; x < 800; x++) if (d[(y*800 + x)*4 + 3] > 10) { if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+  if (maxx < 0) return null;
+  var o = document.createElement('canvas'); o.width = maxx - minx + 9; o.height = maxy - miny + 9; o.getContext('2d').drawImage(src, minx - 4, miny - 4, o.width, o.height, 0, 0, o.width, o.height);
+  return o;
+}
+function finishSprite(canvas, how) {
+  var desc = document.getElementById('desc').value.trim();
+  result = { id: 'k' + seat + '_' + Date.now(), kind: 'sprite', seat: seat, nick: nick, cat: curEx.cat, catName: curEx.nm, desc: desc, abil: miniEngine.parseAbilities(desc), dataUrl: canvas.toDataURL('image/png'), how: how, sent: false };
+  document.getElementById('resultImg').src = result.dataUrl;
+  document.getElementById('resultBox').style.display = '';
+  store.items.push(result); save();
+  document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
+}
+document.getElementById('rawBtn').onclick = function () { if (P.isEmpty()) { msg('drawMsg', '먼저 그림을 그려요', 'no'); return; } var cv = spriteFromCanvas(); if (cv) finishSprite(cv, 'raw'); };
+document.getElementById('aiBtn').onclick = function () {
+  if (P.isEmpty()) { msg('drawMsg', '먼저 그림을 그려요', 'no'); return; }
+  var desc = document.getElementById('desc').value.trim();
+  if (!desc) { msg('drawMsg', '그림을 한 줄로 설명해 주면 AI가 더 잘 알아들어요', 'no'); return; }
+  msg('drawMsg', 'AI가 그림을 만들고 있어요… (약 10초)', '');
+  aiTransform(P.canvas.toDataURL('image/jpeg', 0.8), desc, curEx).then(function (r) {
+    if (!r) { msg('drawMsg', '아직 서버가 연결되지 않았어요. "그대로 쓰기"로 보낼 수 있어요.', 'no'); return; }
+    var im = new Image(); im.onload = function () { msg('drawMsg', ''); finishSprite(miniEngine.cutout(im, 512), 'ai'); }; im.src = r.dataUrl;
+  });
+};
+/* 서버 연결 전: null. Code.gs 단계에서 Gemini 호출로 교체 */
+function aiTransform(dataUrl, desc, ex) { return Promise.resolve(null); }
+function sendSprite(it) { StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, dataUrl: it.dataUrl, transparent: true }); it.sent = true; save(); }
+document.getElementById('sendSprite').onclick = function () { sendSprite(result); msg('drawMsg', '무대로 보냈어요! 프로젝터를 봐요 👀', 'ok'); renderHome(); setTimeout(function () { show('pHome'); }, 1200); };
+document.getElementById('keepSprite').onclick = function () { renderHome(); show('pHome'); };
+
+/* ───────── D 배경 만들기 ───────── */
+var WP = null, wkind = null, lines = { surface: 0.5, bottom: 0.85 };
+document.querySelectorAll('#kinds .card').forEach(function (c) { c.onclick = function () { pickKind(c.dataset.k, c); }; });
+function resetWorld() { wkind = null; document.querySelectorAll('#kinds .card').forEach(function (c) { c.classList.remove('on'); }); document.getElementById('worldArea').style.display = 'none'; document.getElementById('wname').value = ''; document.getElementById('wdesc').value = ''; msg('worldMsg', ''); }
+function pickKind(k, card) {
+  wkind = k; document.querySelectorAll('#kinds .card').forEach(function (c) { c.classList.toggle('on', c === card); });
+  document.getElementById('worldArea').style.display = '';
+  WP = Painter(document.getElementById('wdraw'), 1280, 720, { bg: '#ffffff' }); WP.setSize(8); palette(document.getElementById('wpalette'), WP);
+  lines = { surface: k === 'water' ? 0.06 : 0.5, bottom: 0.85 };
+  buildLines();
+  if (pendingBg) { WP.putImage(pendingBg); pendingBg = null; }
+  var tg = document.getElementById('wtags'); tg.innerHTML = '';
+  WORLD_TAGS.forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { var ta = document.getElementById('wdesc'); ta.value = (ta.value.trim() + ' ' + t).trim(); }; tg.appendChild(c); });
+}
+function buildLines() {
+  var box = document.getElementById('lines'); box.innerHTML = '';
+  var want = { water: ['surface', 'bottom'], landsky: ['bottom'], all: ['surface', 'bottom'], free: [] }[wkind];
+  document.getElementById('lineNote').style.display = want.length ? '' : 'none';
+  want.forEach(function (key) {
+    var d = document.createElement('div'); d.className = 'hline ' + (key === 'bottom' ? 'ground' : ''); d.style.top = (lines[key]*100) + '%'; d.style.color = key === 'bottom' ? '#b45309' : '#1f6feb';
+    d.innerHTML = '<span>' + (key === 'bottom' ? '땅' : '물 표면') + '</span><div class="handle">↕</div>';
+    var h = d.querySelector('.handle');
+    h.addEventListener('pointerdown', function (e) { e.preventDefault(); h.setPointerCapture(e.pointerId); h.drag = true; });
+    h.addEventListener('pointermove', function (e) { if (!h.drag) return; var r = box.getBoundingClientRect(); var v = Math.max(0.03, Math.min(0.97, (e.clientY - r.top)/r.height)); lines[key] = v; d.style.top = (v*100) + '%'; });
+    h.addEventListener('pointerup', function () { h.drag = false; if (lines.surface > lines.bottom - 0.05) { lines.surface = lines.bottom - 0.05; buildLines(); } });
+    box.appendChild(d);
+  });
+}
+document.querySelectorAll('.wsize').forEach(function (s) { s.onclick = function () { WP.setSize(+s.dataset.s); document.querySelectorAll('.wsize').forEach(function (x) { x.classList.toggle('on', x === s); }); }; });
+document.getElementById('wfill').onclick = function () { WP.fill(); };
+document.getElementById('wundo').onclick = function () { WP.undo(); };
+document.getElementById('wclear').onclick = function () { if (confirm('다 지울까요?')) WP.clear(); };
+document.getElementById('wphotoIn').onchange = function (e) { var f = e.target.files[0]; if (!f) return; var im = new Image(); im.onload = function () { WP.putImage(im); }; im.src = URL.createObjectURL(f); };
+document.getElementById('saveWorld').onclick = function () {
+  var name = document.getElementById('wname').value.trim() || (nick + '의 장소');
+  var band = wkind === 'water' ? { surface: lines.surface, bottom: lines.bottom } : wkind === 'landsky' ? { bottom: lines.bottom } : wkind === 'all' ? { surface: lines.surface, bottom: lines.bottom } : {};
+  var it = { id: 'w' + seat + '_' + Date.now(), kind: 'world', seat: seat, nick: nick, name: name, desc: document.getElementById('wdesc').value.trim(), wkind: wkind, band: band, dataUrl: WP.canvas.toDataURL('image/jpeg', 0.85), sent: false };
+  store.items.push(it); save();
+  show('pStage'); setTimeout(function () { useWorld('my_' + it.id); }, 300);
+};
+
+/* ───────── E 내 무대 ───────── */
+var miniEngine = null, curWorldKey = 'sea';
+function startMini() { renderStageWorlds(); renderStageItems(); }
+miniEngine = new StageEngine({ canvas: document.getElementById('mini'), soundBase: '../assets/sound/' });   // 오려내기·능력 판정에도 쓰므로 처음부터 만든다
+function renderStageWorlds() {
+  var box = document.getElementById('stageWorlds'); box.innerHTML = '';
+  var opts = [['sea', '제주 바다'], ['village', '옛 포구 마을'], ['night', '마법의 밤']];
+  store.items.filter(function (i) { return i.kind === 'world'; }).forEach(function (w) { opts.push(['my_' + w.id, '🗺️ ' + w.name]); });
+  if (allow.gallery) Object.keys(gallery).forEach(function (id) { opts.push(['g_' + id, '👫 ' + gallery[id].name]); });
+  opts.forEach(function (o) { var c = document.createElement('span'); c.className = 'chip' + (o[0] === curWorldKey ? ' on' : ''); c.textContent = o[1]; c.onclick = function () { useWorld(o[0]); }; box.appendChild(c); });
+  document.getElementById('submitWorld').style.display = curWorldKey.indexOf('my_') === 0 ? '' : 'none';
+}
+function useWorld(key) {
+  curWorldKey = key;
+  if (key.indexOf('my_') === 0 || key.indexOf('g_') === 0) {
+    var w = key.indexOf('my_') === 0 ? store.items.filter(function (i) { return 'my_' + i.id === key; })[0] : gallery[key.slice(2)];
+    if (!w) return;
+    if (!miniEngine.custom[key]) { var im = new Image(); im.onload = function () { miniEngine.defineWorld(key, { name: w.name, kind: w.wkind || w.kind, band: w.band, desc: w.desc, img: im }); miniEngine.setWorld(key); }; im.src = w.dataUrl; }
+    else miniEngine.setWorld(key);
+  } else miniEngine.setWorld(key);
+  renderStageWorlds();
+}
+function renderStageItems() {
+  var box = document.getElementById('stageItems'); box.innerHTML = '';
+  store.items.filter(function (i) { return i.kind === 'sprite'; }).forEach(function (it) {
+    var d = document.createElement('div'); d.className = 'item'; d.innerHTML = '<img src="' + it.dataUrl + '"><p>' + (it.desc || it.catName) + '<br><b>눌러서 올리기</b></p>';
+    d.onclick = function () { var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); miniEngine.add(c, { seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil }); }; im.src = it.dataUrl; };
+    box.appendChild(d);
+  });
+  if (!store.items.some(function (i) { return i.kind === 'sprite'; })) box.innerHTML = '<p class="small">아직 그림이 없어요. 그림 만들기에서 먼저 그려요.</p>';
+}
+document.getElementById('mFriend').onclick = function () { miniEngine.friends(); };
+document.getElementById('mSsireum').onclick = function () { miniEngine.tournament(); };
+document.getElementById('mDance').onclick = function () { miniEngine.dance(); };
+document.getElementById('mSound').onclick = function () { miniEngine.sound.enable(); };
+document.getElementById('submitWorld').onclick = function () {
+  var w = store.items.filter(function (i) { return 'my_' + i.id === curWorldKey; })[0]; if (!w) return;
+  StageBus.send({ type: 'submitWorld', id: w.id, seat: seat, nick: nick, name: w.name, kind: w.wkind, band: w.band, desc: w.desc, dataUrl: w.dataUrl });
+  w.sent = true; save(); msg('stageMsg', '선생님께 보냈어요! 선생님이 고르면 프로젝터에 나와요.', 'ok');
+};
+applyAllow();
+</script>
+</body>
+</html>

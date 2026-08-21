@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Sketch Stage — Teacher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin:0; background:#f3f5f8; color:#1b2533; font-family:-apple-system, "Apple SD Gothic Neo", sans-serif; }
+  header { display:flex; align-items:center; gap:14px; padding:12px 18px; background:#0b3d91; color:#fff; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header .st { font-size:13px; opacity:.9; }
+  main { display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:14px 18px; max-width:1100px; }
+  section { background:#fff; border-radius:12px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  h2 { font-size:15px; margin:0 0 10px; color:#0b3d91; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  button { border:0; border-radius:8px; padding:10px 14px; font-size:15px; cursor:pointer; background:#e6ebf2; color:#1b2533; }
+  button.w.on { background:#f2b705; }
+  button.act { background:#c2410c; color:#fff; }
+  button.blue { background:#1f6feb; color:#fff; }
+  button.danger { background:#b91c1c; color:#fff; }
+  button.big { font-size:17px; padding:12px 18px; }
+  .sw { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eef1f5; }
+  .sw:last-child { border-bottom:0; }
+  .sw label { font-size:15px; }
+  .sw input { width:44px; height:24px; }
+  .sw small { display:block; color:#667; font-size:12px; }
+  .worlds { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+  .card { border:2px solid #e6ebf2; border-radius:10px; overflow:hidden; cursor:pointer; background:#fafbfc; }
+  .card.on { border-color:#f2b705; }
+  .card img, .card .ph { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; background:#cfd8e3; }
+  .card .ph { display:flex; align-items:center; justify-content:center; font-size:28px; }
+  .card p { margin:0; padding:6px 8px; font-size:13px; }
+  .card p b { display:block; font-size:14px; }
+  .seats { display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; }
+  .seat { background:#eef2f7; border-radius:8px; padding:8px; font-size:13px; text-align:center; }
+  .seat b { display:block; font-size:16px; }
+  .full { grid-column: 1 / -1; }
+  .muted { color:#667; font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>스케치 무대 — 강사</h1>
+  <span class="st" id="status">프로젝터: 연결 대기</span>
+  <button class="blue" id="openStage">프로젝터 창 열기</button>
+</header>
+<main>
+  <section>
+    <h2>무대 공간</h2>
+    <div class="worlds" id="worlds">
+      <div class="card w on" data-w="sea"><div class="ph">🌊</div><p><b>제주 바다</b>참고래·산갈치·해녀·테우</p></div>
+      <div class="card w" data-w="village"><div class="ph">🏝️</div><p><b>옛 포구 마을</b>초가·돌담·돛단배</p></div>
+      <div class="card w" data-w="night"><div class="ph">🌙</div><p><b>마법의 밤</b>별자리·반딧불이, 규칙 없음</p></div>
+    </div>
+    <p class="muted" id="kidWorldsNote" style="margin:10px 0 0">아이들이 만든 배경은 "선생님께 보여주기"를 누르면 여기 아래에 나타납니다.</p>
+    <div class="worlds" id="kidWorlds" style="margin-top:10px"></div>
+  </section>
+
+  <section>
+    <h2>장면</h2>
+    <div class="row">
+      <button class="act big" id="bFriend">친구 만들기</button>
+      <button class="act big" id="bSsireum">씨름 대회</button>
+      <button class="act big" id="bDance">춤 시간</button>
+      <button id="bEnd">장면 끝내기</button>
+    </div>
+    <div class="row">
+      <button id="bAuto">자동 놀이: 켬</button>
+      <button id="bDemo">예시 넣기</button>
+      <button id="bSound">프로젝터 소리 켜기</button>
+    </div>
+    <h2 style="margin-top:14px">정리</h2>
+    <div class="row">
+      <button id="bClear">무대 비우기</button>
+      <button class="danger" id="bWipe">전체 지우기</button>
+    </div>
+    <p class="muted">무대 비우기: 프로젝터의 그림만 내립니다. 아이들 보관함은 남습니다.<br>전체 지우기: 오늘 것 전부 삭제. "지움"이라고 입력해야 실행됩니다.</p>
+  </section>
+
+  <section>
+    <h2>아이들에게 허용</h2>
+    <div id="switches">
+      <div class="sw"><label>그리기 열기<small>아이 화면에서 그림 만들기 시작</small></label><input type="checkbox" data-k="draw"></div>
+      <div class="sw"><label>사진 올리기<small>전시물·실물 사진을 그림 대신 사용</small></label><input type="checkbox" data-k="photo"></div>
+      <div class="sw"><label>AI로 바꾸기<small>그림+설명을 Gemini로 캐릭터화</small></label><input type="checkbox" data-k="ai"></div>
+      <div class="sw"><label>그대로 쓰기<small>AI 없이 원본 그림을 무대로</small></label><input type="checkbox" data-k="raw"></div>
+      <div class="sw"><label>배경 만들기<small>아이가 직접 장소를 그림</small></label><input type="checkbox" data-k="world"></div>
+      <div class="sw"><label>친구 배경 보기<small>공개된 친구 배경을 내 무대에서 사용</small></label><input type="checkbox" data-k="gallery"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>자리 현황</h2>
+    <div class="seats" id="seats"></div>
+    <p class="muted" style="margin-top:8px">자리를 누르면 오늘 한도를 더 줄 수 있습니다. (서버 연결 후 동작)</p>
+  </section>
+</main>
+
+<script src="../stage_bus.js"></script>
+<script>
+var state = JSON.parse(localStorage.getItem('teacherState') || '{}');
+state.allow = state.allow || { draw: false, photo: false, ai: false, raw: false, world: false, gallery: false };
+state.auto = state.auto !== false;
+function save() { localStorage.setItem('teacherState', JSON.stringify(state)); }
+
+/* 공간 */
+function selectWorld(name) {
+  document.querySelectorAll('.card').forEach(function (c) { c.classList.toggle('on', c.dataset.w === name); });
+  StageBus.send({ type: 'world', name: name });
+}
+document.querySelectorAll('#worlds .card').forEach(function (c) { c.onclick = function () { selectWorld(c.dataset.w); }; });
+
+/* 장면 */
+document.getElementById('bFriend').onclick  = function () { StageBus.send({ type: 'scene', name: 'friends' }); };
+document.getElementById('bSsireum').onclick = function () { StageBus.send({ type: 'scene', name: 'tournament' }); };
+document.getElementById('bDance').onclick   = function () { StageBus.send({ type: 'scene', name: 'dance' }); };
+document.getElementById('bEnd').onclick     = function () { StageBus.send({ type: 'scene', name: 'end' }); };
+var bAuto = document.getElementById('bAuto');
+function showAuto() { bAuto.textContent = '자동 놀이: ' + (state.auto ? '켬' : '끔'); }
+bAuto.onclick = function () { state.auto = !state.auto; save(); showAuto(); StageBus.send({ type: 'auto', on: state.auto }); };
+showAuto();
+document.getElementById('bDemo').onclick  = function () { StageBus.send({ type: 'demo' }); };
+document.getElementById('bSound').onclick = function () { StageBus.send({ type: 'sound', on: true }); };
+document.getElementById('bClear').onclick = function () { if (confirm('프로젝터 무대의 그림을 모두 내립니다. 아이들 보관함은 남습니다.')) StageBus.send({ type: 'clear' }); };
+document.getElementById('bWipe').onclick  = function () { var t = prompt('오늘 들어온 그림과 배경을 모두 지웁니다.\n지우려면 "지움" 이라고 입력하세요.'); if (t === '지움') { StageBus.send({ type: 'clear' }); StageBus.send({ type: 'wipe' }); alert('서버 연결 후에는 보관함까지 지워집니다. 지금은 무대만 비웠습니다.'); } };
+
+/* 허용 스위치 */
+document.querySelectorAll('#switches input').forEach(function (i) {
+  i.checked = !!state.allow[i.dataset.k];
+  i.onchange = function () { state.allow[i.dataset.k] = i.checked; save(); StageBus.send({ type: 'allow', allow: state.allow }); };
+});
+
+/* 자리 */
+var seatsEl = document.getElementById('seats');
+for (var s = 1; s <= 15; s++) { var d = document.createElement('div'); d.className = 'seat'; d.innerHTML = '<b>' + s + '</b><span>-</span>'; seatsEl.appendChild(d); }
+
+/* 아이 배경 목록 (지금은 bus로 받은 것만. 서버 연결 후 목록 조회) */
+var kidWorlds = {};
+function renderKidWorlds() {
+  var box = document.getElementById('kidWorlds'); box.innerHTML = '';
+  Object.keys(kidWorlds).forEach(function (id) {
+    var w = kidWorlds[id], c = document.createElement('div'); c.className = 'card'; c.dataset.w = id;
+    c.innerHTML = '<img src="' + w.dataUrl + '"><p><b>' + (w.name || '이름 없음') + '</b>' + (w.desc || '') + '</p>';
+    c.onclick = function () { StageBus.send({ type: 'defineWorld', id: id, name: w.name, kind: w.kind, band: w.band, desc: w.desc, dataUrl: w.dataUrl, show: true }); selectWorld(id); };
+    box.appendChild(c);
+  });
+  document.getElementById('kidWorldsNote').style.display = Object.keys(kidWorlds).length ? 'none' : '';
+}
+
+/* 프로젝터 상태 + 아이 배경 제출 받기 */
+var statusEl = document.getElementById('status'), lastSeen = 0;
+StageBus.on(function (m) {
+  if (m.type === 'status') { lastSeen = Date.now(); statusEl.textContent = '프로젝터: 연결됨 · ' + m.count + '개 · ' + m.world; }
+  if (m.type === 'submitWorld') { kidWorlds[m.id] = m; renderKidWorlds(); }
+});
+setInterval(function () { if (Date.now() - lastSeen > 8000) statusEl.textContent = '프로젝터: 연결 대기'; }, 2000);
+StageBus.send({ type: 'ping' });
+
+document.getElementById('openStage').onclick = function () { window.open('../stage/', 'sketch-stage-projector'); };
+</script>
+</body>
+</html>
