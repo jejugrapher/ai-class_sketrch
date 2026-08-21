@@ -20,5 +20,9 @@
 - 통신은 `stage_bus.js` 하나를 거친다. 메시지 종류: world · scene · auto · clear · demo · sprite · defineWorld · remove · sound · allow · submitWorld · wipe · status · ping.
 - 바꾼 뒤 브라우저에서 실제로 눌러 확인한다. 추측으로 "된다"고 쓰지 않는다.
 
+- 서버는 `apps-script/Code.gs` 하나. 요청은 `{action, ...}` JSON POST(text/plain → preflight 없음). 강사 요청은 `key`(= gate 암호) 필요. 명령은 번호(seq)를 붙여 최근 60개 보관, 프로젝터·아이는 `poll {since}` 로 받는다. 그림은 Drive, 기록은 시트 `items`.
+- 같은 메시지가 창 간 통신과 서버 양쪽으로 올 수 있어 `mid` 로 중복을 걸러낸다(`stage_bus.js`).
+- 서버 로직을 바꾸면 `apps-script/mock_server.py` 도 같이 맞춘다(로컬 시험용).
+
 ## 남은 일
-Apps Script 서버(저장·AI 변환·카테고리/능력 판정·상태 중계·허용·심사·전체 지우기) → `StageBus.setServer()` 연결 → 실제 기기로 시험.
+실제 Apps Script 배포 후 Gemini 호출(그림 바꾸기·오리기·분류)과 AI 결과의 리그 적용을 실제 기기로 검증. 안 맞으면 프롬프트·`IMAGE_MODELS` 조정.

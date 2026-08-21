@@ -6,8 +6,14 @@ var StageBus = (function () {
   var ch = ('BroadcastChannel' in window) ? new BroadcastChannel('sketch-stage') : null;
   var handlers = [], server = null, lastId = 0, timer = null;
   if (ch) ch.onmessage = function (e) { dispatch(e.data, 'local'); };
-  function dispatch(msg, from) { handlers.forEach(function (h) { try { h(msg, from); } catch (err) { console.error(err); } }); }
+  var seen = [], seenSet = {};
+  /* 같은 메시지가 창 간 통신과 서버 양쪽으로 오면 한 번만 처리한다 */
+  function dispatch(msg, from) {
+    if (msg && msg.mid) { if (seenSet[msg.mid]) return; seenSet[msg.mid] = 1; seen.push(msg.mid); if (seen.length > 300) delete seenSet[seen.shift()]; }
+    handlers.forEach(function (h) { try { h(msg, from); } catch (err) { console.error(err); } });
+  }
   function send(msg) {
+    if (!msg.mid) msg.mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     if (ch) ch.postMessage(msg);
     if (server && server.post) server.post(msg);
   }
@@ -15,9 +21,8 @@ var StageBus = (function () {
   /* 서버 연결: {poll: function(lastId) → Promise<{items:[msg], lastId}>, post: function(msg)} */
   function setServer(s, intervalMs) {
     server = s; if (timer) clearInterval(timer);
-    if (s && s.poll) timer = setInterval(function () {
-      s.poll(lastId).then(function (r) { if (!r) return; (r.items || []).forEach(function (m) { dispatch(m, 'server'); }); if (r.lastId) lastId = r.lastId; }).catch(function () {});
-    }, intervalMs || 2500);
+    function tick() { s.poll(lastId).then(function (r) { if (!r) return; (r.items || []).forEach(function (m) { dispatch(m, 'server'); }); if (r.lastId) lastId = r.lastId; if (r.allow) dispatch({ type: 'allow', allow: r.allow, fromPoll: true }, 'server'); }).catch(function () {}); }
+    if (s && s.poll) { tick(); timer = setInterval(tick, intervalMs || 2500); }
   }
   return { send: send, on: on, setServer: setServer };
 })();

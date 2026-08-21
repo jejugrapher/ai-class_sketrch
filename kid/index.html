@@ -204,6 +204,7 @@
 <script src="../stage_demos.js"></script>
 <script src="../stage_guides.js"></script>
 <script src="../stage_bus.js"></script>
+<script src="../stage_server.js"></script>
 <script>
 /* ───────── 자료 ───────── */
 var NICKS = ['번개상어','무지개고래','용감한게','반짝별','바다친구','초록거북','노랑오리','하늘새','씩씩이','방글이','테우선장','해녀삼춘'];
@@ -240,6 +241,7 @@ StageBus.on(function (m) {
   if (m.type === 'allow') { allow = m.allow; localStorage.setItem('teacherAllow', JSON.stringify(allow)); applyAllow(); }
   if (m.type === 'wipe') { Object.keys(localStorage).filter(function (k) { return k.indexOf('kid_') === 0; }).forEach(function (k) { localStorage.removeItem(k); }); if (seat) { load(); renderHome(); } }
   if (m.type === 'defineWorld' && m.show) { gallery[m.id] = m; }
+  if (m.type === 'remove') m = { type: 'removeItem', id: m.id };
   if (m.type === 'removeItem') {                 // 강사가 지운 그림: 보관함에서도 뺀다
     Object.keys(localStorage).filter(function (key) { return key.indexOf('kid_') === 0; }).forEach(function (key) {
       var st = JSON.parse(localStorage.getItem(key) || '{"items":[]}'); var n = st.items.length;
@@ -267,7 +269,18 @@ document.getElementById('enterBtn').onclick = function () {
   load(); store.nick = nick; save();
   document.getElementById('who').textContent = seat + '번 ' + nick;
   renderHome(); show('pHome');
+  if (serverOn) StageServer.call('enter', { seat: seat, nick: nick }).then(function (r) {
+    if (!r || !r.ok) return;
+    allow = r.allow; applyAllow();
+    (r.items || []).forEach(function (it) {                                  // 서버 보관함 → 이 기기에 없는 것만 받아온다
+      if (store.items.some(function (x) { return x.id === it.id; })) return;
+      StageServer.image(it.fileId).then(function (d) { if (!d) return; var local = { id: it.id, kind: it.kind, seat: it.seat, nick: it.nick, cat: it.cat, catName: '', desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, dataUrl: d, sent: it.state !== 'kept', name: it.name, wkind: it.wkind, band: it.band }; store.items.push(local); save(); renderHome(); });
+    });
+  });
 };
+var serverOn = false;
+StageServer.init('kid', { onOnline: function () { serverOn = true; } });
+function serverSave(it) { if (!serverOn) return Promise.resolve(null); return StageServer.call('saveItem', { seat: seat, nick: nick, item: it }); }
 
 /* ───────── B 홈 ───────── */
 function applyAllow() {
@@ -406,13 +419,14 @@ function spriteFromCanvas() {
   var cr = StageGuides.cropBox(src, 4); if (!cr) return null;
   return { canvas: cr.canvas, rigBox: (curEx && curEx.guide && !traceMode) ? { ox: cr.ox, oy: cr.oy, s: 0.8 } : null };   // 도안 좌표(1000) → 그림판(800)
 }
-function finishSprite(r, how) {
+function finishSprite(r, how, ai) {
   var canvas = r.canvas || r, desc = document.getElementById('desc').value.trim();
-  result = { id: 'k' + seat + '_' + Date.now(), kind: 'sprite', seat: seat, nick: nick, cat: curEx.cat, catName: curEx.nm, desc: desc, abil: miniEngine.parseAbilities(desc), dataUrl: canvas.toDataURL('image/png'), how: how, sent: false,
+  result = { id: 'k' + seat + '_' + Date.now(), kind: 'sprite', seat: seat, nick: nick, cat: (ai && ai.cat) || curEx.cat, catName: curEx.nm, desc: desc, abil: (ai && ai.abil) || miniEngine.parseAbilities(desc), dataUrl: canvas.toDataURL('image/png'), how: how, sent: false,
              rig: (r.rigBox && curEx.guide) ? curEx.guide : null, rigBox: r.rigBox || null };
   document.getElementById('resultImg').src = result.dataUrl;
   document.getElementById('resultBox').style.display = '';
   store.items.push(result); save();
+  serverSave(result);
   document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
 }
 document.getElementById('rawBtn').onclick = function () { if (P.isEmpty()) { msg('drawMsg', '먼저 그림을 그려요', 'no'); return; } var r = spriteFromCanvas(); if (r) finishSprite(r, 'raw'); };
@@ -423,12 +437,31 @@ document.getElementById('aiBtn').onclick = function () {
   msg('drawMsg', 'AI가 그림을 만들고 있어요… (약 10초)', '');
   aiTransform(P.canvas.toDataURL('image/jpeg', 0.8), desc, curEx).then(function (r) {
     if (!r) { msg('drawMsg', '아직 서버가 연결되지 않았어요. "그대로 쓰기"로 보낼 수 있어요.', 'no'); return; }
-    var im = new Image(); im.onload = function () { msg('drawMsg', ''); finishSprite(miniEngine.cutout(im, 512), 'ai'); }; im.src = r.dataUrl;
+    if (r.fail) return;
+    var im = new Image(); im.onload = function () {
+      msg('drawMsg', r.left !== undefined ? '완성! 오늘 AI는 ' + r.left + '번 더 할 수 있어요' : '', 'ok');
+      var cut = miniEngine.cutout(im, 640);
+      /* AI 에 "같은 구도 유지"를 요구했으므로 도안 리그를 같은 비율로 적용한다 (정사각 결과일 때만) */
+      var rb = (cut && curEx.guide && !traceMode && !P.photo && Math.abs(im.width - im.height) < im.width*0.05) ? { ox: cut.ox, oy: cut.oy, s: im.width*cut.s/1000 } : null;
+      finishSprite({ canvas: cut, rigBox: rb }, 'ai', r);
+    }; im.src = r.dataUrl;
   });
 };
-/* 서버 연결 전: null. Code.gs 단계에서 Gemini 호출로 교체 */
-function aiTransform(dataUrl, desc, ex) { return Promise.resolve(null); }
-function sendSprite(it) { StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, dataUrl: it.dataUrl, transparent: true }); it.sent = true; save(); }
+/* AI: 서버(Code.gs)의 Gemini 호출. 서버가 없으면 null */
+function aiTransform(dataUrl, desc, ex) {
+  if (!serverOn) return Promise.resolve(null);
+  return StageServer.call('ai', { seat: seat, dataUrl: dataUrl, desc: desc, guide: ex && ex.guide, mode: P.photo ? 'cutout' : 'transform' }).then(function (r) {
+    if (!r) return null;
+    if (!r.ok) { msg('drawMsg', r.msg || 'AI가 실패했어요', 'no'); return { fail: true }; }
+    lastAi = r; return r;
+  });
+}
+var lastAi = null;
+function sendSprite(it) {
+  if (serverOn) StageServer.call('send', { id: it.id, kind: 'sprite' });       // 서버가 프로젝터에 전달
+  else StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, dataUrl: it.dataUrl, transparent: true });
+  it.sent = true; save();
+}
 document.getElementById('sendSprite').onclick = function () { sendSprite(result); msg('drawMsg', '무대로 보냈어요! 프로젝터를 봐요 👀', 'ok'); renderHome(); setTimeout(function () { show('pHome'); }, 1200); };
 document.getElementById('keepSprite').onclick = function () { renderHome(); show('pHome'); };
 
@@ -470,6 +503,7 @@ document.getElementById('saveWorld').onclick = function () {
   var band = wkind === 'water' ? { surface: lines.surface, bottom: lines.bottom } : wkind === 'landsky' ? { bottom: lines.bottom } : wkind === 'all' ? { surface: lines.surface, bottom: lines.bottom } : {};
   var it = { id: 'w' + seat + '_' + Date.now(), kind: 'world', seat: seat, nick: nick, name: name, desc: document.getElementById('wdesc').value.trim(), wkind: wkind, band: band, dataUrl: WP.canvas.toDataURL('image/jpeg', 0.85), sent: false };
   store.items.push(it); save();
+  serverSave(it);
   show('pStage'); setTimeout(function () { useWorld('my_' + it.id); }, 300);
 };
 
@@ -510,7 +544,8 @@ document.getElementById('mDance').onclick = function () { miniEngine.dance(); };
 document.getElementById('mSound').onclick = function () { miniEngine.sound.enable(); };
 document.getElementById('submitWorld').onclick = function () {
   var w = store.items.filter(function (i) { return 'my_' + i.id === curWorldKey; })[0]; if (!w) return;
-  StageBus.send({ type: 'submitWorld', id: w.id, seat: seat, nick: nick, name: w.name, kind: w.wkind, band: w.band, desc: w.desc, dataUrl: w.dataUrl });
+  if (serverOn) StageServer.call('send', { id: w.id, kind: 'world' });
+  else StageBus.send({ type: 'submitWorld', id: w.id, seat: seat, nick: nick, name: w.name, kind: w.wkind, band: w.band, desc: w.desc, dataUrl: w.dataUrl });
   w.sent = true; save(); msg('stageMsg', '선생님께 보냈어요! 선생님이 고르면 프로젝터에 나와요.', 'ok');
 };
 applyAllow();

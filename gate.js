@@ -17,7 +17,7 @@
     document.body.appendChild(ov);
     var f = ov.querySelector('form'), pw = ov.querySelector('#gatePw'), msg = ov.querySelector('#gateMsg');
     pw.focus();
-    f.onsubmit = function (e) { e.preventDefault(); sha256(pw.value).then(function (h) { if (h === HASH) { sessionStorage.setItem(KEY, HASH); ov.remove(); } else { msg.textContent = '암호가 다릅니다'; pw.value = ''; pw.focus(); } }); };
+    f.onsubmit = function (e) { e.preventDefault(); sha256(pw.value).then(function (h) { if (h === HASH) { sessionStorage.setItem(KEY, HASH); sessionStorage.setItem('stageGatePw', pw.value); ov.remove(); } else { msg.textContent = '암호가 다릅니다'; pw.value = ''; pw.focus(); } }); };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();

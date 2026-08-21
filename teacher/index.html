@@ -113,6 +113,7 @@
 </main>
 
 <script src="../stage_bus.js"></script>
+<script src="../stage_server.js"></script>
 <script>
 var state = JSON.parse(localStorage.getItem('teacherState') || '{}');
 state.allow = state.allow || { draw: false, photo: false, ai: false, raw: false, world: false, gallery: false };
@@ -144,7 +145,7 @@ document.getElementById('bWipe').onclick  = function () {
   if (t !== '지움') return;
   StageBus.send({ type: 'clear' }); StageBus.send({ type: 'wipe' });
   gallery = {}; kidWorlds = {}; renderGallery(); renderKidWorlds(); selectWorld('sea');
-  alert('초기화했습니다. (지금 열려 있는 아이 화면은 바로 지워지고, 닫혀 있던 기기는 서버 연결 후 지워집니다)');
+  alert(serverOn ? '초기화했습니다. 서버·프로젝터·아이 보관함이 모두 지워집니다.' : '초기화했습니다. (같은 기기 창만. 서버가 연결되면 모든 기기에 적용됩니다)');
 };
 
 /* 허용 스위치 */
@@ -200,6 +201,33 @@ setInterval(function () { if (Date.now() - lastSeen > 8000) statusEl.textContent
 StageBus.send({ type: 'ping' });
 
 document.getElementById('openStage').onclick = function () { window.open('../stage/', 'sketch-stage-projector'); };
+
+/* ─── 서버 연결: 갤러리·아이 배경·자리 현황을 서버에서 가져온다 ─── */
+var serverOn = false;
+function refreshFromServer() {
+  if (!serverOn) return;
+  var k = StageServer.teacherKey();
+  StageServer.call('gallery', { key: k }).then(function (r) {
+    if (!r || !r.ok) return;
+    var seenS = {}, seenW = {};
+    r.items.forEach(function (it) {
+      if (it.kind === 'world') { seenW[it.id] = 1; if (!kidWorlds[it.id]) { kidWorlds[it.id] = { id: it.id, name: it.name, kind: it.wkind, band: it.band, desc: it.desc, seat: it.seat, nick: it.nick, dataUrl: '' }; StageServer.image(it.fileId).then(function (d) { kidWorlds[it.id].dataUrl = d || ''; renderKidWorlds(); }); } }
+      else { seenS[it.id] = 1; if (!gallery[it.id]) { gallery[it.id] = { id: it.id, seat: it.seat, nick: it.nick, desc: it.desc, dataUrl: '' }; StageServer.image(it.fileId).then(function (d) { gallery[it.id].dataUrl = d || ''; renderGallery(); }); } }
+    });
+    Object.keys(gallery).forEach(function (id) { if (!seenS[id]) delete gallery[id]; });
+    Object.keys(kidWorlds).forEach(function (id) { if (!seenW[id]) delete kidWorlds[id]; });
+    renderGallery(); renderKidWorlds();
+  });
+  StageServer.call('seats', { key: k }).then(function (r) {
+    if (!r || !r.ok) return;
+    seatsEl.querySelectorAll('.seat').forEach(function (d, i) { var u = r.seats[i + 1] || {}; d.querySelector('span').textContent = (u.nick || '-') + (u.items ? ' · ' + u.items + '개' : '') + (u.ai ? ' · AI ' + u.ai : ''); });
+  });
+}
+StageServer.init('teacher', { onOnline: function (u) {
+  serverOn = true; statusEl.textContent += ' · 서버 연결됨';
+  StageServer.call('state').then(function (r) { if (r && r.ok) { state.allow = r.allow; save(); document.querySelectorAll('#switches input').forEach(function (i) { i.checked = !!state.allow[i.dataset.k]; }); } });
+  refreshFromServer(); setInterval(refreshFromServer, 5000);
+}, onOffline: function () { document.getElementById('kidWorldsNote').textContent += ' (지금은 같은 기기 창끼리만 연결됩니다. app.json 에 서버 주소가 없습니다)'; } });
 </script>
 </body>
 </html>

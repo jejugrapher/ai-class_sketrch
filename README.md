@@ -91,7 +91,9 @@ stage_demos.js      예시 그림 생성기 (강사 [예시 넣기])
 stage_bus.js        강사 ↔ 프로젝터 ↔ 아이 통신
 assets/sound/       음원 (상황마다 *_1, *_2 두 개 중 무작위)
 assets/qr_kid.png   아이 화면 QR
-app.json            Apps Script 주소 (서버 연결 후 사용)
+app.json            Apps Script 주소. 비어 있으면 같은 기기 창끼리만
+stage_server.js     서버 연결 (app.json 읽기, 요청, 이미지 캐시)
+apps-script/        Code.gs(서버) · SETUP.md(만드는 법) · mock_server.py(개발용 모의 서버)
 docs/               구조 문서, Suno 음원 프롬프트
 ```
 
@@ -102,13 +104,9 @@ docs/               구조 문서, Suno 음원 프롬프트
 **되는 것** — 세 화면 모두, 같은 컴퓨터의 브라우저 창끼리 연결된 상태에서 전 과정.
 시험: `teacher/` 를 열고 [프로젝터 창 열기], 같은 브라우저에서 `kid/` 를 연다.
 
-**안 되는 것 (서버 필요)**
-- 아이 폰 → 프로젝터: 기기가 다르면 Apps Script 서버가 있어야 전달된다
-- AI로 바꾸기, 복잡한 배경에서 대상만 오리기(AI 오리기)
-- 보관함 서버 저장(지금은 기기별 localStorage), 강사 [전체 지우기]의 서버 반영
-- 자리별 현황·한도
-
+**서버를 붙이면** (`apps-script/SETUP.md`) — 아이 폰 → 프로젝터 전달, AI로 바꾸기·AI 오리기, 서버 보관함(기기가 바뀌어도 유지), 강사 갤러리·삭제·초기화가 모든 기기에 적용, 자리별 현황.
 서버는 이전 강의와 같은 방식이다: Apps Script 하나, API 키는 `setApiKey()` 로 스크립트 속성에만 저장, 배포 URL을 `app.json` 의 `exec` 에 넣는다.
+`app.json` 의 `exec` 가 비어 있으면 같은 기기 창 간 통신만 쓴다.
 
 ---
 

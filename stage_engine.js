@@ -48,6 +48,7 @@ function cutoutPaper(img, maxSide) {
   var pad = 2, cw = maxx-minx+1+pad*2, ch = maxy-miny+1+pad*2;
   var o = document.createElement('canvas'); o.width = cw; o.height = ch;
   o.getContext('2d').drawImage(cv, minx-pad, miny-pad, cw, ch, 0, 0, cw, ch);
+  o.ox = minx - pad; o.oy = miny - pad; o.s = s; o.srcW = img.width; o.srcH = img.height;   // 잘라낸 위치·배율 (리그 좌표 변환용)
   return o;
 }
 
