@@ -55,7 +55,7 @@ document.addEventListener('keydown', function (e) { if (e.key === 'q' || e.key =
 /* 이미지 데이터 → 스프라이트 (흰 배경 오려내기 포함) */
 function addFromData(msg) {
   var im = new Image();
-  im.onload = function () { var cut = msg.transparent ? toCanvas(im) : E.cutout(im, 512); if (cut) E.add(cut, msg); };
+  im.onload = function () { var cut = msg.transparent ? toCanvas(im) : E.cutout(im, 512); if (cut) { E.add(cut, msg); StageRT.watch(msg.id); } };
   im.src = msg.dataUrl || msg.url;
 }
 function toCanvas(im) { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c; }
@@ -76,7 +76,7 @@ StageBus.on(function (m) {
     case 'clear':  E.clear(); break;
     case 'demo':   addRigSamples(); break;
     case 'sprite': addFromData(m); break;
-    case 'remove': E.removeSprite(m.id); break;
+    case 'remove': E.removeSprite(m.id); StageRT.unwatch(m.id); break;
     case 'defineWorld': (function () { var im = new Image(); im.onload = function () { E.defineWorld(m.id, { name: m.name, kind: m.kind, band: m.band, desc: m.desc, img: im }); if (m.show) E.setWorld(m.id); }; im.src = m.dataUrl || m.url; })(); break;
     case 'sound':  if (m.on) E.sound.enable(); else E.sound.on = false; break;
     case 'qr':     qr.classList.toggle('on', m.toggle ? !qr.classList.contains('on') : !!m.on); break;

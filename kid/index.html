@@ -34,6 +34,11 @@
   .card .nm { font-size:14px; margin-top:4px; }
   .canvasWrap { position:relative; width:100%; background:#fff; border:3px solid #e6ebf2; border-radius:14px; overflow:hidden; touch-action:none; }
   .canvasWrap canvas { display:block; width:100%; height:100%; }
+  .zoomLayer { position:absolute; inset:0; transform-origin:0 0; }
+  .zoomLayer canvas { position:absolute; inset:0; }
+  .zoomBtns { position:absolute; right:8px; bottom:8px; display:flex; gap:6px; z-index:3; }
+  .zoomBtns button { width:44px; height:44px; border:0; border-radius:12px; background:rgba(27,37,51,.75); color:#fff; font-size:22px; font-weight:bold; }
+  .zoomBtns button.r { width:auto; padding:0 10px; font-size:13px; }
   #guide, #lines { position:absolute; inset:0; pointer-events:none; }
   #lines { pointer-events:auto; }
   .tools { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; align-items:center; }
@@ -114,10 +119,11 @@
   <div class="cards" id="exhibits"></div>
   <div id="drawArea" style="display:none">
     <h2 style="margin-top:16px">그려요 <span class="small" id="guideNote"></span></h2>
-    <div class="canvasWrap" style="aspect-ratio:1">
-      <canvas id="guide"></canvas>
-      <canvas id="draw"></canvas>
+    <div class="canvasWrap" style="aspect-ratio:1" id="drawWrap">
+      <div class="zoomLayer" id="drawZoom"><canvas id="guide"></canvas><canvas id="draw"></canvas></div>
+      <div class="zoomBtns"><button data-z="-">－</button><button data-z="+">＋</button><button class="r" data-z="0">원래 크기</button></div>
     </div>
+    <p class="small">두 손가락으로 벌리면 확대, 오므리면 축소, 두 손가락으로 끌면 이동해요.</p>
     <div class="tools" id="palette"></div>
     <div class="tools">
       <div class="size on" data-s="6"><i style="width:6px;height:6px"></i></div>
@@ -160,9 +166,9 @@
   </div>
   <div id="worldArea" style="display:none">
     <h2 style="margin-top:16px">배경을 그려요</h2>
-    <div class="canvasWrap" style="aspect-ratio:16/9">
-      <canvas id="wdraw"></canvas>
-      <div id="lines"></div>
+    <div class="canvasWrap" style="aspect-ratio:16/9" id="wdrawWrap">
+      <div class="zoomLayer" id="wdrawZoom"><canvas id="wdraw"></canvas><div id="lines"></div></div>
+      <div class="zoomBtns"><button data-z="-">－</button><button data-z="+">＋</button><button class="r" data-z="0">원래 크기</button></div>
     </div>
     <div class="tools" id="wpalette"></div>
     <div class="tools">
@@ -341,16 +347,48 @@ document.getElementById('goWorld').onclick = function () { resetWorld(); show('p
 document.getElementById('goStage').onclick = function () { show('pStage'); };
 document.getElementById('goCtrl').onclick = function () { openCtrl(null); };
 
+/* ───────── 확대·축소·이동 (두 손가락 + 버튼) ───────── */
+function Zoomable(wrap, layer, painterRef) {
+  var z = { s: 1, tx: 0, ty: 0 }, ptrs = {}, pinch = null;
+  function apply() {
+    var W = wrap.clientWidth, H = wrap.clientHeight;
+    z.s = Math.max(1, Math.min(5, z.s));
+    z.tx = Math.min(0, Math.max(W - W*z.s, z.tx)); z.ty = Math.min(0, Math.max(H - H*z.s, z.ty));   // 화면 밖으로 못 나가게
+    layer.style.transform = 'translate(' + z.tx + 'px,' + z.ty + 'px) scale(' + z.s + ')';
+  }
+  function zoomAt(f, cx, cy) { var ns = Math.max(1, Math.min(5, z.s*f)); f = ns/z.s; z.tx = cx - (cx - z.tx)*f; z.ty = cy - (cy - z.ty)*f; z.s = ns; apply(); }
+  wrap.addEventListener('pointerdown', function (e) { ptrs[e.pointerId] = [e.clientX, e.clientY]; if (Object.keys(ptrs).length === 2) { if (painterRef.p) painterRef.p.cancelStroke(); pinch = start(); } }, true);
+  wrap.addEventListener('pointermove', function (e) {
+    if (!(e.pointerId in ptrs)) return; ptrs[e.pointerId] = [e.clientX, e.clientY];
+    if (!pinch || Object.keys(ptrs).length < 2) return;
+    var cur = start(), f = cur.d / (pinch.d || 1), r = wrap.getBoundingClientRect();
+    var ns = Math.max(1, Math.min(5, pinch.s*f)), ff = ns/pinch.s;
+    var px = pinch.cx - r.left, py = pinch.cy - r.top;                       // 처음 두 손가락 가운데를 기준으로 확대
+    z.tx = pinch.tx + (cur.cx - pinch.cx) - (px - pinch.tx)*(ff - 1); z.ty = pinch.ty + (cur.cy - pinch.cy) - (py - pinch.ty)*(ff - 1); z.s = ns; apply();
+  }, true);
+  function end(e) { delete ptrs[e.pointerId]; if (Object.keys(ptrs).length < 2) pinch = null; }
+  ['pointerup', 'pointercancel'].forEach(function (ev) { wrap.addEventListener(ev, end, true); });
+  function start() { var ids = Object.keys(ptrs), a = ptrs[ids[0]], b = ptrs[ids[1]]; return { d: Math.hypot(a[0]-b[0], a[1]-b[1]), cx: (a[0]+b[0])/2, cy: (a[1]+b[1])/2, s: z.s, tx: z.tx, ty: z.ty }; }
+  wrap.querySelectorAll('.zoomBtns button').forEach(function (b) { b.addEventListener('pointerdown', function (e) { e.stopPropagation(); }, true); b.onclick = function (e) { e.stopPropagation(); var W = wrap.clientWidth, H = wrap.clientHeight;
+    if (b.dataset.z === '0') { z = { s: 1, tx: 0, ty: 0 }; apply(); } else zoomAt(b.dataset.z === '+' ? 1.4 : 1/1.4, W/2, H/2); }; });
+  wrap.addEventListener('wheel', function (e) { e.preventDefault(); var r = wrap.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1/1.15, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  return { reset: function () { z = { s: 1, tx: 0, ty: 0 }; apply(); }, active: function () { return !!pinch; } };
+}
+var drawZoomRef = { p: null }, wdrawZoomRef = { p: null };
+var drawZoom = Zoomable(document.getElementById('drawWrap'), document.getElementById('drawZoom'), drawZoomRef);
+var wdrawZoom = Zoomable(document.getElementById('wdrawWrap'), document.getElementById('wdrawZoom'), wdrawZoomRef);
+
 /* ───────── 그림판 공통 ───────── */
 function Painter(canvas, w, h, opts) {
   canvas.width = w; canvas.height = h;
-  var c = canvas.getContext('2d'), color = '#1b2533', size = 6, eraser = false, hist = [], drawing = false, last = null;
+  var c = canvas.getContext('2d'), color = '#1b2533', size = 6, eraser = false, hist = [], drawing = false, last = null, zoomRef = opts && opts.zoomRef;
   if (opts && opts.bg) { c.fillStyle = opts.bg; c.fillRect(0, 0, w, h); }
   function pos(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * w / r.width, y: (e.clientY - r.top) * h / r.height }; }
   function snap() { hist.push(c.getImageData(0, 0, w, h)); if (hist.length > 20) hist.shift(); }
-  canvas.addEventListener('pointerdown', function (e) { e.preventDefault(); canvas.setPointerCapture(e.pointerId); snap(); drawing = true; last = pos(e); dot(last); });
-  canvas.addEventListener('pointermove', function (e) { if (!drawing) return; var p = pos(e); c.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'; c.strokeStyle = color; c.lineWidth = size; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(last.x, last.y); c.lineTo(p.x, p.y); c.stroke(); last = p; });
+  canvas.addEventListener('pointerdown', function (e) { if (zoomRef && zoomRef.z && zoomRef.z.active()) return; e.preventDefault(); canvas.setPointerCapture(e.pointerId); snap(); drawing = true; last = pos(e); dot(last); });
+  canvas.addEventListener('pointermove', function (e) { if (!drawing) return; if (zoomRef && zoomRef.z && zoomRef.z.active()) { cancelStroke(); return; } var p = pos(e); c.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'; c.strokeStyle = color; c.lineWidth = size; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(last.x, last.y); c.lineTo(p.x, p.y); c.stroke(); last = p; });
   canvas.addEventListener('pointerup', function () { drawing = false; c.globalCompositeOperation = 'source-over'; });
+  function cancelStroke() { if (!drawing) return; drawing = false; c.globalCompositeOperation = 'source-over'; var im = hist.pop(); if (im) c.putImageData(im, 0, 0); }   // 두 손가락이 닿으면 그리던 선 취소
   function dot(p) { c.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'; c.fillStyle = color; c.beginPath(); c.arc(p.x, p.y, size/2, 0, 6.3); c.fill(); }
   return {
     setColor: function (v) { color = v; eraser = false; }, setSize: function (v) { size = v; }, setEraser: function (v) { eraser = v; },
@@ -358,6 +396,7 @@ function Painter(canvas, w, h, opts) {
     clear: function () { snap(); c.clearRect(0, 0, w, h); if (opts && opts.bg) { c.fillStyle = opts.bg; c.fillRect(0, 0, w, h); } },
     fill: function () { snap(); c.globalCompositeOperation = 'destination-over'; c.fillStyle = color; c.fillRect(0, 0, w, h); c.globalCompositeOperation = 'source-over'; },
     putImage: function (im) { snap(); c.clearRect(0, 0, w, h); var s = Math.min(w/im.width, h/im.height), dw = im.width*s, dh = im.height*s; c.drawImage(im, (w-dw)/2, (h-dh)/2, dw, dh); },
+    cancelStroke: cancelStroke,
     canvas: canvas, ctx: c, isEmpty: function () { var d = c.getImageData(0, 0, w, h).data; for (var i = 3; i < d.length; i += 4) if (d[i] > 10) return false; return true; }
   };
 }
@@ -381,7 +420,7 @@ function resetDraw() { curEx = null; result = null; exBox.querySelectorAll('.car
 function pickExhibit(ex, card) {
   curEx = ex; traceMode = false; document.getElementById('guide').style.opacity = 1; exBox.querySelectorAll('.card').forEach(function (c) { c.classList.toggle('on', c === card); });
   document.getElementById('drawArea').style.display = '';
-  var cv = document.getElementById('draw'); P = Painter(cv, 800, 800); palette(document.getElementById('palette'), P);
+  var cv = document.getElementById('draw'); P = Painter(cv, 800, 800, { zoomRef: { z: drawZoom } }); drawZoomRef.p = P; drawZoom.reset(); palette(document.getElementById('palette'), P);
   document.querySelectorAll('#pDraw .size').forEach(function (s, i) { s.classList.toggle('on', i === 0); });
   drawGuide(ex);
   var tg = document.getElementById('tags'); tg.innerHTML = '';
@@ -500,7 +539,7 @@ function resetWorld() { wkind = null; document.querySelectorAll('#kinds .card').
 function pickKind(k, card) {
   wkind = k; document.querySelectorAll('#kinds .card').forEach(function (c) { c.classList.toggle('on', c === card); });
   document.getElementById('worldArea').style.display = '';
-  WP = Painter(document.getElementById('wdraw'), 1280, 720, { bg: '#ffffff' }); WP.setSize(8); palette(document.getElementById('wpalette'), WP);
+  WP = Painter(document.getElementById('wdraw'), 1280, 720, { bg: '#ffffff', zoomRef: { z: wdrawZoom } }); wdrawZoomRef.p = WP; wdrawZoom.reset(); WP.setSize(8); palette(document.getElementById('wpalette'), WP);
   lines = { surface: k === 'water' ? 0.06 : 0.5, bottom: 0.85 };
   buildLines();
   if (pendingBg) { WP.putImage(pendingBg); pendingBg = null; }

@@ -15,9 +15,8 @@ var StageRT = (function () {
           .then(function () {
             firebase.initializeApp(cfg.firebase); db = firebase.database(); mode = 'firebase';
             if (role === 'stage') {
-              db.ref('room/ctrl').on('child_changed', function (snap) { var v = snap.val(); if (v && v.t > startedAt - 5000) ctrlCb.forEach(function (f) { f(snap.key, v.dx, v.dy); }); });
-              db.ref('room/ctrl').on('child_added', function (snap) { var v = snap.val(); if (v && v.t > startedAt - 5000) ctrlCb.forEach(function (f) { f(snap.key, v.dx, v.dy); }); });
               db.ref('room/chat').limitToLast(20).on('child_added', function (snap) { var v = snap.val(); if (v && v.t > startedAt - 2000) chatCb.forEach(function (f) { f(v.id, v.text, v.seat, v.nick); }); });
+              Object.keys(watched).forEach(watchNow);             // 연결 전에 등록된 그림들
             }
             return mode;
           }).catch(function (e) { console.warn('firebase 실패, 서버 경로로', e); return initServer(cfg); });
@@ -25,6 +24,14 @@ var StageRT = (function () {
       return initServer(cfg);
     });
   }
+  /* 프로젝터: 그림마다 room/ctrl/{id} 를 따로 구독한다 (규칙이 항목 단위여도 읽힌다) */
+  var watched = {};
+  function watch(id) { if (!id || watched[id] === 2) return; watched[id] = 1; if (db) watchNow(id); }
+  function watchNow(id) {
+    if (watched[id] === 2) return; watched[id] = 2;
+    db.ref('room/ctrl/' + id).on('value', function (snap) { var v = snap.val(); if (v && v.t > startedAt - 5000) ctrlCb.forEach(function (f) { f(id, v.dx, v.dy); }); });
+  }
+  function unwatch(id) { if (db && watched[id]) db.ref('room/ctrl/' + id).off(); delete watched[id]; }
   function initServer(cfg) { mode = (cfg.exec || '').trim() ? 'server' : 'local'; return mode; }
   /* 아이 → */
   function sendCtrl(id, dx, dy) {
@@ -45,5 +52,5 @@ var StageRT = (function () {
     if (m.type === 'ctrl') ctrlCb.forEach(function (f) { f(m.id, m.dx, m.dy); });
     if (m.type === 'chat') chatCb.forEach(function (f) { f(m.id, m.text, m.seat, m.nick); });
   });
-  return { init: init, sendCtrl: sendCtrl, sendChat: sendChat, onCtrl: onCtrl, onChat: onChat, mode: function () { return mode; } };
+  return { init: init, sendCtrl: sendCtrl, sendChat: sendChat, onCtrl: onCtrl, onChat: onChat, watch: watch, unwatch: unwatch, mode: function () { return mode; } };
 })();
