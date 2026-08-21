@@ -730,6 +730,53 @@ function ssireum(pair, done) {
   }};
   return true;
 }
+/* 아이들끼리 하는 씨름(대결): 점수는 밖(아이 화면 연타)에서 들어온다. opts.duration 초 뒤 점수 높은 쪽이 이긴다 */
+function duel(idA, idB, opts) {
+  opts = opts || {};
+  var a = null, b = null; sprites.forEach(function (s) { if (s.id === idA) a = s; if (s.id === idB) b = s; });
+  if (!a || !b) return false;
+  sprites.forEach(function (sp) { if (sp.ctrl) release(sp); }); Sound.stopLoop();
+  a.manual = null; b.manual = null;
+  var cx = W/2, cy = meetY(a, b), gap = (a.w*a.depth + b.w*b.depth)/4 + 10, dur = opts.duration || 8, start = performance.now();
+  var sc = { a: 0, b: 0 }, ended = false;
+  say((a.nick || '') + ' vs ' + (b.nick || ''), cx, cy - 140, '#ffd166'); Sound.play('cheer'); Sound.loop('ssireum');
+  scene = { name: 'duel', a: a, b: b, setScores: function (sa, sb) { sc.a = +sa || 0; sc.b = +sb || 0; }, tick: function () {
+    var age = (performance.now() - start)/1000;
+    if (age < 1.8) { a.ctrl = { tx: cx - gap - 30, ty: cy, face: 1, ease: 0.06 }; b.ctrl = { tx: cx + gap + 30, ty: cy, face: -1, ease: 0.06 }; }
+    else if (age < 3) { a.ctrl = { tx: cx - gap, ty: cy, face: 1, rot: 0.25, ease: 0.15 }; b.ctrl = { tx: cx + gap, ty: cy, face: -1, rot: -0.25, ease: 0.15 }; a.mood = '😤'; b.mood = '😤';
+      if (!scene.counted) { scene.counted = true; say('준비!', cx, cy - 200, '#fff'); } }
+    else if (age < 3 + dur) {
+      if (!scene.go) { scene.go = true; say('시작!', cx, cy - 200, '#ffd166'); }
+      var push = Math.max(-140, Math.min(140, (sc.a - sc.b)*8));             // 점수 차만큼 밀린다
+      var s2 = push + Math.sin(age*9)*10;
+      a.ctrl = { tx: cx - gap + s2, ty: cy + Math.sin(age*18)*4, face: 1, rot: 0.25 + Math.sin(age*9)*0.08, ease: 0.3 };
+      b.ctrl = { tx: cx + gap + s2, ty: cy - Math.sin(age*18)*4, face: -1, rot: -0.25 + Math.sin(age*9)*0.08, ease: 0.3 };
+      if (Math.random() < 0.25) spawn('spark', cx + s2, cy, 1);
+      scene.bar = { a: sc.a, b: sc.b, left: Math.max(0, 3 + dur - age), x: cx, y: cy - 210 };
+    } else if (age < 3 + dur + 1.8) {
+      if (!scene.winner) { scene.winner = sc.a > sc.b ? a : sc.b > sc.a ? b : (Math.random() < 0.5 ? a : b); scene.bar = null;
+        say((scene.winner.nick || (scene.winner.seat + '번')) + ' 이겼다!', cx, cy - 160, '#ffd166'); spawn('star', scene.winner.x, spriteTop(scene.winner), 18); Sound.play('win'); Sound.stopLoop(); }
+      var winner = scene.winner, loser = winner === a ? b : a, f = (age - 3 - dur)/1.8, side = loser === a ? -1 : 1;
+      loser.ctrl = { tx: cx + side*(gap + 60 + f*260), ty: cy - Math.sin(f*Math.PI)*120, face: -side, rot: side*f*Math.PI*2, ease: 0.2 };
+      winner.ctrl = { tx: cx - side*gap*0.5, ty: cy, face: side, rot: 0, bounce: Math.abs(Math.sin(age*10))*28, ease: 0.2 };
+      winner.mood = '🎉'; loser.mood = '😵';
+    } else { release(a); release(b); a.dir = -1; b.dir = 1; var w = scene.winner; scene = null; if (opts.onEnd && !ended) { ended = true; opts.onEnd(w.id, sc.a, sc.b); } }
+  }};
+  return true;
+}
+/* 대결 점수판 */
+function drawDuelBar() {
+  if (!scene || scene.name !== 'duel' || !scene.bar) return;
+  var bb = scene.bar, a = scene.a, b = scene.b, tot = Math.max(1, bb.a + bb.b), w = 520, h = 34, x = bb.x - w/2, y = bb.y;
+  g.save(); g.font = 'bold 22px sans-serif'; g.textAlign = 'center';
+  g.fillStyle = 'rgba(0,0,0,.5)'; g.beginPath(); g.roundRect(x - 10, y - 40, w + 20, h + 80, 14); g.fill();
+  g.fillStyle = '#ffd166'; g.fillText('⏱ ' + Math.ceil(bb.left) + '초  — 화살표를 여러 방향으로 연타!', bb.x, y - 14);
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect(x, y, w, h, 8); g.fill();
+  g.fillStyle = '#e63946'; g.beginPath(); g.roundRect(x, y, w*(bb.a/tot), h, 8); g.fill();
+  g.fillStyle = '#1f6feb'; g.beginPath(); g.roundRect(x + w*(bb.a/tot), y, w*(bb.b/tot), h, 8); g.fill();
+  g.fillStyle = '#fff'; g.textAlign = 'left'; g.fillText((a.nick || a.seat + '번') + ' ' + bb.a, x, y + h + 28); g.textAlign = 'right'; g.fillText(bb.b + ' ' + (b.nick || b.seat + '번'), x + w, y + h + 28);
+  g.restore();
+}
 function tournament() {
   var f = free(); f.sort(function(){return Math.random()-0.5;});
   if (f.length < 2) { say('친구가 더 필요해요', W/2, H/2, '#fff'); return; }
@@ -796,6 +843,7 @@ function step(now) {
     }
     g.restore();
   });
+  drawDuelBar();
   texts = texts.filter(function (x) { return x.age < x.life; });
   texts.forEach(function (x) {
     x.age += dt; var f = Math.min(1, x.age*4);
@@ -840,6 +888,9 @@ requestAnimationFrame(step);
     if (sp.motion === 'sink' && sp.settled) { sp.motion = 'swim'; sp.settled = false; }          // 가라앉은 것도 조종하면 움직인다
     return true;
   }
+  function friendsById(idA, idB) { var a = findSprite(idA), b = findSprite(idB); if (!a || !b) return false; endScene(); a.manual = null; b.manual = null; return friends([a, b]); }
+  /* 화면 안 그림들의 위치(0~1 비율). 아이 화면의 '가까운 친구' 판단용 */
+  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '' }; }); return o; }
   function chat(id, text) {
     var sp = findSprite(id); if (!sp) return false;
     text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 40); if (!text) return false;
@@ -847,7 +898,8 @@ requestAnimationFrame(step);
     Sound.play('enter'); return true;
   }
   return {
-    add: add, clear: clear, removeSprite: removeSprite, control: control, chat: chat, find: findSprite, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
+    add: add, clear: clear, removeSprite: removeSprite, control: control, chat: chat, find: findSprite, duel: duel, friendsById: friendsById, positions: positions,
+    duelScores: function (sa, sb) { if (scene && scene.name === 'duel') scene.setScores(sa, sb); }, sceneName: function () { return scene ? scene.name : null; }, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
     friends: function () { endScene(); friends(pickTwo()); }, tournament: function () { endScene(); tournament(); }, dance: function () { endScene(); dance(); }, endScene: endScene,
     setAuto: function (v) { autoPlay = !!v; }, getAuto: function () { return autoPlay; }, sound: Sound, cutout: cutoutPaper, parseAbilities: parseAbilities,
     sprites: function () { return sprites; }, world: function () { return world; }, say: function (t, c) { say(t, W/2, H*0.2, c || '#ffd166'); }

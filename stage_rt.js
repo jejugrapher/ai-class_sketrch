@@ -52,5 +52,16 @@ var StageRT = (function () {
     if (m.type === 'ctrl') ctrlCb.forEach(function (f) { f(m.id, m.dx, m.dy); });
     if (m.type === 'chat') chatCb.forEach(function (f) { f(m.id, m.text, m.seat, m.nick); });
   });
-  return { init: init, sendCtrl: sendCtrl, sendChat: sendChat, onCtrl: onCtrl, onChat: onChat, watch: watch, unwatch: unwatch, mode: function () { return mode; } };
+  /* ── 가까운 친구·친구하기·씨름 (Firebase 전용) ── */
+  function ok() { return mode === 'firebase' && db; }
+  function publishPos(map) { if (ok()) db.ref('room/pos').set(Object.assign({ _t: firebase.database.ServerValue.TIMESTAMP }, map)); }
+  function onPos(cb) { if (ok()) db.ref('room/pos').on('value', function (s) { cb(s.val() || {}); }); }
+  function sendReq(req) { if (ok()) db.ref('room/req').push(Object.assign({ t: firebase.database.ServerValue.TIMESTAMP }, req)); }
+  function onReq(cb) { if (ok()) db.ref('room/req').limitToLast(10).on('child_added', function (s) { var v = s.val(); if (v && v.t > startedAt - 2000) cb(v, s.key); }); }
+  function createMatch(m) { if (!ok()) return null; var ref = db.ref('room/match').push(Object.assign({ t: firebase.database.ServerValue.TIMESTAMP }, m)); return ref.key; }
+  function onMatch(cb) { if (ok()) { var h = function (s) { var v = s.val(); if (v && v.t > startedAt - 5000) cb(v, s.key); }; db.ref('room/match').limitToLast(5).on('child_added', h); db.ref('room/match').limitToLast(5).on('child_changed', h); } }
+  function setMatch(key, patch) { if (ok()) db.ref('room/match/' + key).update(patch); }
+  function tap(key, id, inc) { if (ok()) db.ref('room/match/' + key + '/score/' + id).transaction(function (v) { return (v || 0) + (inc || 1); }); }
+  return { init: init, sendCtrl: sendCtrl, sendChat: sendChat, onCtrl: onCtrl, onChat: onChat, watch: watch, unwatch: unwatch, mode: function () { return mode; },
+           publishPos: publishPos, onPos: onPos, sendReq: sendReq, onReq: onReq, createMatch: createMatch, onMatch: onMatch, setMatch: setMatch, tap: tap };
 })();

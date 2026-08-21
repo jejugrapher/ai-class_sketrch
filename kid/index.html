@@ -68,6 +68,18 @@
   .row .btn { flex:1; text-align:center; }
   .small { font-size:14px; color:#556; }
   #photoIn { display:none; }
+  .near { background:#fff; border:2px solid #e6ebf2; border-radius:12px; padding:10px; margin-top:8px; }
+  .near .row { margin:6px 0 0; }
+  .near b { font-size:17px; }
+  #askBanner { position:fixed; left:10px; right:10px; top:64px; z-index:25; background:#0b3d91; color:#fff; border-radius:14px; padding:14px; display:none; box-shadow:0 8px 30px rgba(0,0,0,.3); }
+  #askBanner.on { display:block; }
+  #askBanner .row .btn { flex:1; text-align:center; }
+  #duel { position:fixed; inset:0; z-index:28; background:#1b2533; color:#fff; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  #duel.on { display:flex; }
+  #duel h1 { margin:0; font-size:30px; }
+  #duel .big { font-size:64px; font-weight:bold; color:#ffd166; }
+  #duel .pad button { background:#e63946; }
+  #duel .score { font-size:20px; }
   #cutEd { position:fixed; inset:0; background:#1b2533; z-index:30; display:none; flex-direction:column; color:#fff; }
   #cutEd.on { display:flex; }
   #cutEd .top { display:flex; gap:8px; align-items:center; padding:10px 12px; flex-wrap:wrap; }
@@ -215,6 +227,9 @@
     <button data-d="-1,0">◀</button><button class="c" id="padStop">멈춤</button><button data-d="1,0">▶</button>
     <span></span><button data-d="0,1">▼</button><span></span>
   </div>
+  <h2>가까이 있는 친구</h2>
+  <p class="small">화살표로 친구 그림 가까이 가면 여기에 나타나요.</p>
+  <div id="nearBox"><p class="small" id="nearNote">아직 가까운 친구가 없어요.</p></div>
   <h2>말하기</h2>
   <div class="chatrow"><input type="text" id="chatIn" maxlength="40" placeholder="예: 안녕! 나는 번개상어야"><button class="btn p" id="chatSend">말하기</button></div>
   <div class="chips" id="chatChips"></div>
@@ -236,6 +251,20 @@
   <div id="stageMsg"></div>
 </div>
 
+<div id="askBanner"><div id="askText" style="font-size:18px;font-weight:bold;margin-bottom:10px"></div><div class="row"><button class="btn p" id="askYes">수락</button><button class="btn" id="askNo">거절</button></div></div>
+<div id="duel">
+  <h1>🤼 씨름!</h1>
+  <div id="duelVs" class="score"></div>
+  <div class="big" id="duelBig">준비…</div>
+  <div class="pad">
+    <span></span><button data-k="u">▲</button><span></span>
+    <button data-k="l">◀</button><span class="c" style="display:flex;align-items:center;justify-content:center;font-size:13px;color:#aab">연타!</span><button data-k="r">▶</button>
+    <span></span><button data-k="d">▼</button><span></span>
+  </div>
+  <p class="small" style="color:#cdd">같은 방향만 누르면 1점, 방향을 바꾸면 2점! 여러 방향을 빠르게 눌러요.</p>
+  <div class="score" id="duelScore"></div>
+  <button class="btn" id="duelClose" style="display:none">닫기</button>
+</div>
 <div id="cutEd">
   <div class="top">
     <button class="on" data-m="erase">🧽 배경 지우기</button><button data-m="keep">🎯 대상만 남기기</button>
@@ -651,7 +680,7 @@ document.getElementById('saveWorld').onclick = function () {
 
 /* ───────── G 조종·채팅 ───────── */
 var ctrlId = null, holdDir = null, holdTimer = null;
-StageRT.init('kid').then(function (mode) { if (mode === 'server') msg('ctrlMsg', '서버 경로라 조금 느리게(1~3초) 움직여요', ''); });
+StageRT.init('kid').then(function (mode) { if (mode === 'server') msg('ctrlMsg', '서버 경로라 조금 느리게(1~3초) 움직여요', ''); if (mode !== 'firebase') document.getElementById('nearNote').textContent = '친구하기·씨름은 실시간 연결(Firebase)이 있어야 해요.'; });
 function openCtrl(id) {
   var sent = store.items.filter(function (i) { return i.kind === 'sprite' && i.sent; });
   if (!sent.length) { msg('ctrlMsg', '먼저 그림을 무대로 보내요', 'no'); show('pCtrl'); return; }
@@ -660,7 +689,7 @@ function openCtrl(id) {
   sent.forEach(function (it) { var im = document.createElement('img'); im.src = it.dataUrl; im.className = it.id === ctrlId ? 'on' : ''; im.onclick = function () { ctrlId = it.id; box.querySelectorAll('img').forEach(function (x) { x.classList.toggle('on', x === im); }); }; box.appendChild(im); });
   var chips = document.getElementById('chatChips'); chips.innerHTML = '';
   ['안녕!', '나 여기 있어', '같이 놀자', '씨름하자!', '춤추자 🎵', '내가 제일 빨라', '배고파', '으악!'].forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { document.getElementById('chatIn').value = t; sendChat(); }; chips.appendChild(c); });
-  show('pCtrl');
+  show('pCtrl'); renderNear();
 }
 function setDir(dx, dy) { if (!ctrlId) return; holdDir = [dx, dy]; StageRT.sendCtrl(ctrlId, dx, dy); clearInterval(holdTimer); if (dx || dy) holdTimer = setInterval(function () { StageRT.sendCtrl(ctrlId, dx, dy); }, 1500); }   // 누르고 있는 동안 1.5초마다 다시 알림(3초 자동 복귀 방지)
 document.querySelectorAll('.pad [data-d]').forEach(function (b) {
@@ -673,6 +702,63 @@ document.getElementById('padStop').onclick = function () { setDir(0, 0); };
 function sendChat() { var t = document.getElementById('chatIn').value.trim(); if (!t || !ctrlId) return; StageRT.sendChat(ctrlId, seat, nick, t); document.getElementById('chatIn').value = ''; msg('ctrlMsg', '말풍선을 띄웠어요 💬', 'ok'); }
 document.getElementById('chatSend').onclick = sendChat;
 document.getElementById('chatIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
+/* ── 가까운 친구 · 친구하기 · 씨름 (Firebase 실시간 경로에서만) ── */
+var posMap = {}, nearIds = [], matchKey = null, myDuelId = null, lastKey = null, duelOver = false;
+function myItems() { return store.items.filter(function (i) { return i.kind === 'sprite' && i.sent; }).map(function (i) { return i.id; }); }
+function renderNear() {
+  if (!ctrlId || !posMap[ctrlId]) { document.getElementById('nearBox').innerHTML = '<p class="small">내 그림이 무대에 보이면 친구를 찾아요.</p>'; return; }
+  var me = posMap[ctrlId], mine = myItems(), list = [];
+  Object.keys(posMap).forEach(function (id) { if (id === '_t' || id === ctrlId || mine.indexOf(id) >= 0) return; var o = posMap[id]; if (!o || typeof o.x !== 'number') return;
+    var d = Math.hypot(o.x - me.x, (o.y - me.y)*0.56); if (d < 0.16) list.push({ id: id, d: d, nick: o.nick, seat: o.seat }); });
+  list.sort(function (p, q) { return p.d - q.d; }); nearIds = list.map(function (l) { return l.id; });
+  var box = document.getElementById('nearBox'); box.innerHTML = '';
+  if (!list.length) { box.innerHTML = '<p class="small">아직 가까운 친구가 없어요. 화살표로 다가가 봐요.</p>'; return; }
+  list.slice(0, 3).forEach(function (f) {
+    var d = document.createElement('div'); d.className = 'near';
+    d.innerHTML = '<b>' + (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + '</b><div class="row"><button class="btn g">🤝 친구하기</button><button class="btn p">🤼 씨름하기</button></div>';
+    var bs = d.querySelectorAll('button');
+    bs[0].onclick = function () { StageRT.sendReq({ type: 'friend', from: ctrlId, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '와 친구가 됐어요 💛', 'ok'); };
+    bs[1].onclick = function () { StageRT.sendReq({ type: 'ssireum', from: ctrlId, fromNick: nick, fromSeat: seat, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '에게 씨름을 신청했어요. 수락을 기다려요…', ''); };
+    box.appendChild(d);
+  });
+}
+StageRT.init('kid').then(function (mode) {
+  if (mode !== 'firebase') return;
+  StageRT.onPos(function (m) { posMap = m; if (document.getElementById('pCtrl').classList.contains('on')) renderNear(); });
+  /* 씨름 신청 받기 */
+  StageRT.onReq(function (r, key) {
+    if (r.type !== 'ssireum' || myItems().indexOf(r.to) < 0 || key === lastKey) return; lastKey = key;
+    var ban = document.getElementById('askBanner'); document.getElementById('askText').textContent = (r.fromSeat ? r.fromSeat + '번 ' : '') + (r.fromNick || '친구') + '가 씨름을 신청했어요!'; ban.classList.add('on');
+    document.getElementById('askYes').onclick = function () { ban.classList.remove('on'); matchKey = StageRT.createMatch({ a: r.from, b: r.to, status: 'go', score: {} }); myDuelId = r.to; openDuel(r.fromNick || '친구', nick); };
+    document.getElementById('askNo').onclick = function () { ban.classList.remove('on'); StageRT.sendReq({ type: 'no', from: r.to, to: r.from }); };
+    setTimeout(function () { ban.classList.remove('on'); }, 20000);
+  });
+  StageRT.onReq(function (r) { if (r.type === 'no' && myItems().indexOf(r.to) >= 0) msg('ctrlMsg', '친구가 지금은 씨름을 안 하고 싶대요', 'no'); });
+  /* 대결 진행: 내가 신청한 쪽도 여기서 화면이 열린다 */
+  StageRT.onMatch(function (m, key) {
+    var mine = myItems(), me = mine.indexOf(m.a) >= 0 ? m.a : mine.indexOf(m.b) >= 0 ? m.b : null; if (!me) return;
+    if (m.status === 'go') { if (matchKey !== key) { matchKey = key; myDuelId = me; openDuel(posMap[m.a] && posMap[m.a].nick, posMap[m.b] && posMap[m.b].nick); }
+      var sc = m.score || {}; document.getElementById('duelScore').textContent = '나 ' + (sc[me] || 0) + '  :  ' + (sc[me === m.a ? m.b : m.a] || 0) + ' 친구'; }
+    if (m.status === 'done' && matchKey === key && !duelOver) { duelOver = true; var win = m.winner === me; document.getElementById('duelBig').textContent = win ? '🎉 이겼다!' : '😵 졌다…'; document.getElementById('duelClose').style.display = ''; document.querySelectorAll('#duel .pad button').forEach(function (b) { b.disabled = true; }); }
+    if (m.status === 'cancel' && matchKey === key) { closeDuel(); msg('ctrlMsg', '씨름을 시작하지 못했어요 (무대에 둘 다 있어야 해요)', 'no'); }
+  });
+});
+var duelLastDir = null, duelStartAt = 0;
+function openDuel(na, nb) {
+  duelOver = false; duelLastDir = null; duelStartAt = Date.now() + 3000;
+  document.getElementById('duelVs').textContent = (na || '친구') + '  vs  ' + (nb || '친구');
+  document.getElementById('duelBig').textContent = '준비…'; document.getElementById('duelScore').textContent = '';
+  document.getElementById('duelClose').style.display = 'none'; document.querySelectorAll('#duel .pad button').forEach(function (b) { b.disabled = false; });
+  document.getElementById('duel').classList.add('on');
+  var n = 3, h = setInterval(function () { n--; if (n > 0) document.getElementById('duelBig').textContent = n; else { document.getElementById('duelBig').textContent = '연타!'; clearInterval(h); } }, 1000);
+}
+function closeDuel() { document.getElementById('duel').classList.remove('on'); matchKey = null; }
+document.getElementById('duelClose').onclick = closeDuel;
+document.querySelectorAll('#duel .pad button').forEach(function (b) {
+  b.addEventListener('pointerdown', function (e) { e.preventDefault(); if (!matchKey || duelOver || Date.now() < duelStartAt) return;
+    var k = b.dataset.k, inc = (duelLastDir && duelLastDir !== k) ? 2 : 1; duelLastDir = k; StageRT.tap(matchKey, myDuelId, inc);
+    b.classList.add('on'); setTimeout(function () { b.classList.remove('on'); }, 80); });
+});
 /* 내 무대에서도 조종이 되게 */
 StageRT.onCtrl(function (id, dx, dy) { if (miniEngine) miniEngine.control(id, dx, dy); });
 StageRT.onChat(function (id, text) { if (miniEngine) miniEngine.chat(id, text); });

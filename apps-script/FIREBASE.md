@@ -21,19 +21,16 @@ Firebase 없이도 동작하지만, 조종이 끊겨 보인다. 수업에서 조
 {
   "rules": {
     "room": {
-      "ctrl": {
-        ".read": true,
-        "$id": { ".write": true, ".validate": "newData.hasChildren(['dx','dy','t'])" }
-      },
-      "chat": {
-        ".read": true, ".write": true,
-        "$k": { ".validate": "newData.child('text').isString() && newData.child('text').val().length <= 40" }
-      }
+      "ctrl":  { ".read": true, "$id": { ".write": true, ".validate": "newData.hasChildren(['dx','dy','t'])" } },
+      "chat":  { ".read": true, ".write": true, "$k": { ".validate": "newData.child('text').isString() && newData.child('text').val().length <= 40" } },
+      "pos":   { ".read": true, ".write": true },
+      "req":   { ".read": true, ".write": true },
+      "match": { ".read": true, ".write": true }
     }
   }
 }
 ```
-로그인 없이 쓰는 구조라 이 경로는 누구나 쓸 수 있다. 그림·기록은 여기 두지 않는다(Apps Script 쪽). 수업이 끝나면 데이터 탭에서 `room` 을 지워도 된다.
+`pos`(그림 위치) · `req`(친구하기·씨름 신청) · `match`(씨름 대결 점수)도 쓴다. 로그인 없이 쓰는 구조라 이 경로는 누구나 쓸 수 있다. 그림·기록은 여기 두지 않는다(Apps Script 쪽). 수업이 끝나면 데이터 탭에서 `room` 을 지워도 된다.
 
 ## 3. 웹앱 등록 → 설정값 복사
 1. 프로젝트 개요 → **앱 추가 → 웹(</>)** → 닉네임 `stage` → 등록

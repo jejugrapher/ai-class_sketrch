@@ -87,11 +87,24 @@ setInterval(function () { StageBus.send({ type: 'status', count: E.sprites().len
 /* 아이 조종·채팅 */
 StageRT.onCtrl(function (id, dx, dy) { E.control(id, +dx || 0, +dy || 0); });
 StageRT.onChat(function (id, text) { E.chat(id, text); });
-StageRT.init('stage').then(function (mode) { rtMode = mode; });
+StageRT.init('stage').then(function (mode) {
+  rtMode = mode; if (mode !== 'firebase') return;
+  setInterval(function () { StageRT.publishPos(E.positions()); }, 500);               // 위치 공유 (가까운 친구 판단)
+  StageRT.onReq(function (r) { if (r.type === 'friend') E.friendsById(r.from, r.to); });   // 친구하기는 바로 효과
+  var running = {};
+  StageRT.onMatch(function (m, key) {                                                 // 씨름: 수락되면 대결 시작, 점수 반영
+    if (m.status === 'go' && !running[key] && E.sceneName() !== 'duel') {
+      running[key] = true;
+      var started = E.duel(m.a, m.b, { duration: 8, onEnd: function (winner, sa, sb) { StageRT.setMatch(key, { status: 'done', winner: winner, sa: sa, sb: sb }); } });
+      if (!started) StageRT.setMatch(key, { status: 'cancel' });
+    }
+    if (m.status === 'go' && m.score) E.duelScores(m.score[m.a] || 0, m.score[m.b] || 0);
+  });
+});
 var rtMode = 'local';
 var online = false;
 StageServer.init('stage', { onOnline: function () { online = true; }, onOffline: function () { online = false; } });
-setInterval(function () { var t = tag.textContent.replace(/ · (서버|같은 기기)$/, ''); tag.textContent = t + ' · ' + (online ? '서버' : '같은 기기') + (rtMode === 'firebase' ? ' · 실시간' : ''); }, 3000);
+setInterval(function () { var t = tag.textContent.replace(/( · (서버|같은 기기|실시간))+$/, ''); tag.textContent = t + ' · ' + (online ? '서버' : '같은 기기') + (rtMode === 'firebase' ? ' · 실시간' : ''); }, 3000);
 
 /* 개발용 조작판: ?dev=1 */
 if (/[?&]dev=1/.test(location.search)) {
