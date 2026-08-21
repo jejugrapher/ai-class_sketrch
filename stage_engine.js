@@ -826,7 +826,10 @@ requestAnimationFrame(step);
   function removeSprite(id) { sprites = sprites.filter(function (s) { return s.id !== id; }); updateCount(); }
   function add(img, meta) { meta = meta || {}; if (meta.id) { var dup = sprites.some(function (s) { return s.id === meta.id; }); if (dup) return null; }
     var keep = opts.idFor; opts.idFor = meta.id ? function () { return meta.id; } : null; opts._rig = meta.rig ? { name: meta.rig, box: meta.rigBox } : null; addSprite(img, meta.seat, meta.cat, meta.nick, meta.desc); opts.idFor = keep; opts._rig = null;
-    var sp = sprites[sprites.length - 1]; if (meta.abil) { sp.abil = meta.abil; applyRules(sp, true); } return sp; }
+    var sp = sprites[sprites.length - 1]; if (meta.abil) { sp.abil = meta.abil; applyRules(sp, true); }
+    var face = meta.face || (meta.rigBox && meta.rigBox.face);                 // 아이가 고른 그림 방향이 도안 기본값보다 우선
+    if (face) { sp.faceLeft = face === 'left'; sp.noFlip = face === 'front'; }
+    return sp; }
   function findSprite(id) { for (var i = 0; i < sprites.length; i++) if (sprites[i].id === id) return sprites[i]; return null; }
   /* 조종: dx,dy ∈ {-1,0,1}. 입력이 없으면 3초 뒤 자동 복귀. 장면(씨름 등) 중에는 무시 */
   function control(id, dx, dy) {

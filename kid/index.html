@@ -68,6 +68,16 @@
   .row .btn { flex:1; text-align:center; }
   .small { font-size:14px; color:#556; }
   #photoIn { display:none; }
+  #cutEd { position:fixed; inset:0; background:#1b2533; z-index:30; display:none; flex-direction:column; color:#fff; }
+  #cutEd.on { display:flex; }
+  #cutEd .top { display:flex; gap:8px; align-items:center; padding:10px 12px; flex-wrap:wrap; }
+  #cutEd .top button { border:0; border-radius:10px; padding:10px 12px; font-size:15px; background:#3a4a60; color:#fff; }
+  #cutEd .top button.on { background:#ff9f1c; }
+  #cutEd .top button.p { background:#2ec4b6; }
+  #cutEd .wrap { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:repeating-conic-gradient(#2a3442 0 25%, #1f2733 0 50%) 0 0/24px 24px; touch-action:none; }
+  #cutEd canvas { max-width:100%; max-height:100%; }
+  #cutEd .bot { padding:10px 12px; font-size:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  #cutEd input[type=range] { flex:1; }
   .pad { display:grid; grid-template-columns: repeat(3, 84px); grid-template-rows: repeat(3, 84px); gap:8px; justify-content:center; margin:14px auto; }
   .pad button { font-size:34px; border:0; border-radius:16px; background:#ff9f1c; color:#fff; touch-action:none; user-select:none; -webkit-user-select:none; }
   .pad button:active, .pad button.on { background:#c2410c; }
@@ -135,6 +145,9 @@
       <button class="tool" id="guideToggle">도안 끄기</button>
       <label class="tool" id="photoBtn" style="display:none">📷 사진·앨범<input type="file" id="photoIn" accept="image/*"></label>
     </div>
+    <h2>이 그림은 어느 쪽을 보고 있어요?</h2>
+    <p class="small">무대에서 이쪽이 앞이 돼요. 수영할 때는 머리가 앞으로 가요.</p>
+    <div class="chips" id="faceChips"><span class="chip" data-f="left">◀ 왼쪽을 봐요</span><span class="chip" data-f="right">▶ 오른쪽을 봐요</span><span class="chip" data-f="front">앞(정면)을 봐요</span></div>
     <h2>이 그림을 설명해요</h2>
     <textarea id="desc" placeholder="예: 밤바다에서 별빛을 받으며 천천히 헤엄치는 고래"></textarea>
     <div class="chips" id="tags"></div>
@@ -223,6 +236,16 @@
   <div id="stageMsg"></div>
 </div>
 
+<div id="cutEd">
+  <div class="top">
+    <button class="on" data-m="erase">🧽 배경 지우기</button><button data-m="keep">🎯 대상만 남기기</button>
+    <button id="cutAuto">자동(밝은 배경)</button><button id="cutAi">✨ AI로 지우기</button>
+    <button id="cutUndo">되돌리기</button><button id="cutReset">처음으로</button>
+    <button class="p" id="cutDone">완료</button><button id="cutCancel">취소</button>
+  </div>
+  <div class="wrap"><canvas id="cutCv"></canvas></div>
+  <div class="bot"><span id="cutHint">지울 배경을 톡톡 눌러요. 비슷한 색이 이어진 곳이 함께 지워져요.</span><span>감도</span><input type="range" id="cutTol" min="10" max="120" value="40"></div>
+</div>
 <div id="sheet"><div class="box">
   <h2>이 사진을 어떻게 할까요?</h2>
   <img id="sheetImg">
@@ -405,6 +428,12 @@ function palette(el, painter, cls) {
   COLORS.forEach(function (col, i) { var d = document.createElement('div'); d.className = 'sw' + (i === 0 ? ' on' : ''); d.style.background = col; d.onclick = function () { painter.setColor(col); el.querySelectorAll('.sw').forEach(function (x) { x.classList.toggle('on', x === d); }); var er = document.getElementById('eraser'); if (er) er.classList.remove('on'); }; el.appendChild(d); });
 }
 
+/* 그림 방향: 도안이 있으면 도안 기본값, 아니면 오른쪽 */
+var face = 'right';
+function setFace(f) { face = f; document.querySelectorAll('#faceChips .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.f === f); }); }
+document.querySelectorAll('#faceChips .chip').forEach(function (c) { c.onclick = function () { setFace(c.dataset.f); }; });
+function defaultFace(ex) { var r = ex && ex.guide && StageGuides.rigs[ex.guide]; return r && r.noFlip ? 'front' : (r && r.faceLeft ? 'left' : 'right'); }
+
 /* ───────── C 그림 만들기 ───────── */
 var P = null, curEx = null, guideOn = true, result = null;
 var exBox = document.getElementById('exhibits');
@@ -422,7 +451,7 @@ function pickExhibit(ex, card) {
   document.getElementById('drawArea').style.display = '';
   var cv = document.getElementById('draw'); P = Painter(cv, 800, 800, { zoomRef: { z: drawZoom } }); drawZoomRef.p = P; drawZoom.reset(); palette(document.getElementById('palette'), P);
   document.querySelectorAll('#pDraw .size').forEach(function (s, i) { s.classList.toggle('on', i === 0); });
-  drawGuide(ex);
+  drawGuide(ex); setFace(defaultFace(ex));
   var tg = document.getElementById('tags'); tg.innerHTML = '';
   ex.tags.concat(COMMON_TAGS).forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { var ta = document.getElementById('desc'); ta.value = (ta.value.trim() + ' ' + t).trim(); }; tg.appendChild(c); });
   document.getElementById('resultBox').style.display = 'none'; msg('drawMsg', '');
@@ -450,13 +479,59 @@ document.getElementById('photoIn').onchange = function (e) {
 function shrink(im, max) { var s = Math.min(1, max/Math.max(im.width, im.height)); var c = document.createElement('canvas'); c.width = Math.round(im.width*s); c.height = Math.round(im.height*s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return c; }
 function closeSheet() { document.getElementById('sheet').classList.remove('on'); }
 document.getElementById('optCancel').onclick = closeSheet;
-/* ① 대상만 오리기: 지금은 밝은 단색 배경(흰 벽·종이·하늘)에서 잘 됨. 복잡한 배경은 서버 연결 후 AI 오리기 */
-document.getElementById('optCut').onclick = function () {
-  closeSheet(); var cut = miniEngine.cutout(photoImg, 800);
-  if (!cut) { msg('drawMsg', '대상을 찾지 못했어요. 밝은 배경에서 다시 찍어 볼까요?', 'no'); return; }
-  P.clear(); P.putImage(cut); P.photo = false;      // 이미 오려져 있으니 그대로 쓰기 가능
-  msg('drawMsg', '대상만 남겼어요. 남은 부분은 지우개로 지우고, 설명을 써요.', 'ok');
-};
+/* ① 대상만 오리기 → 누끼 편집기 (톡톡 눌러 배경 지우기 / 대상만 남기기 / 자동 / AI) */
+document.getElementById('optCut').onclick = function () { closeSheet(); CutEditor.open(photoImg); };
+var CutEditor = (function () {
+  var ed = document.getElementById('cutEd'), cv = document.getElementById('cutCv'), ctx = cv.getContext('2d', { willReadFrequently: true });
+  var mode = 'erase', hist = [], orig = null, W = 0, H = 0;
+  function open(img) {
+    var s = Math.min(1, 800/Math.max(img.width, img.height)); W = Math.round(img.width*s); H = Math.round(img.height*s);
+    cv.width = W; cv.height = H; ctx.clearRect(0, 0, W, H); ctx.drawImage(img, 0, 0, W, H);
+    orig = ctx.getImageData(0, 0, W, H); hist = []; setMode('erase'); ed.classList.add('on');
+  }
+  function setMode(m) { mode = m; ed.querySelectorAll('[data-m]').forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
+    document.getElementById('cutHint').textContent = m === 'erase' ? '지울 배경을 톡톡 눌러요. 비슷한 색이 이어진 곳이 함께 지워져요.' : '남길 대상을 톡톡 눌러요. 누른 곳과 이어진 부분만 남아요.'; }
+  ed.querySelectorAll('[data-m]').forEach(function (b) { b.onclick = function () { setMode(b.dataset.m); }; });
+  function snap() { hist.push(ctx.getImageData(0, 0, W, H)); if (hist.length > 15) hist.shift(); }
+  /* 누른 점에서 비슷한 색으로 이어진 영역 찾기 (마법봉) */
+  function region(x0, y0, tol) {
+    var d = ctx.getImageData(0, 0, W, H).data, seen = new Uint8Array(W*H), st = [y0*W + x0], i0 = (y0*W + x0)*4;
+    var r0 = d[i0], g0 = d[i0+1], b0 = d[i0+2]; if (d[i0+3] < 10) return null;
+    while (st.length) { var p = st.pop(); if (seen[p]) continue; var i = p*4; if (d[i+3] < 10) continue;
+      if (Math.abs(d[i]-r0) + Math.abs(d[i+1]-g0) + Math.abs(d[i+2]-b0) > tol*3) continue; seen[p] = 1;
+      var x = p % W; if (x > 0) st.push(p-1); if (x < W-1) st.push(p+1); if (p >= W) st.push(p-W); if (p < W*(H-1)) st.push(p+W); }
+    return seen;
+  }
+  cv.addEventListener('pointerdown', function (e) {
+    var r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left)*W/r.width), y = Math.floor((e.clientY - r.top)*H/r.height);
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    var tol = +document.getElementById('cutTol').value, seen = region(x, y, tol); if (!seen) return;
+    snap(); var id = ctx.getImageData(0, 0, W, H), d = id.data;
+    if (mode === 'erase') { for (var p = 0; p < W*H; p++) if (seen[p]) d[p*4+3] = 0; }
+    else { for (var q = 0; q < W*H; q++) if (!seen[q]) d[q*4+3] = 0; }
+    ctx.putImageData(id, 0, 0);
+  });
+  document.getElementById('cutUndo').onclick = function () { var im = hist.pop(); if (im) ctx.putImageData(im, 0, 0); };
+  document.getElementById('cutReset').onclick = function () { snap(); ctx.putImageData(orig, 0, 0); };
+  document.getElementById('cutAuto').onclick = function () { var c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').putImageData(orig, 0, 0); var cut = miniEngine.cutout(c, 800); if (!cut) return; snap(); ctx.clearRect(0, 0, W, H); ctx.drawImage(cut, cut.ox, cut.oy); };
+  document.getElementById('cutAi').onclick = function () {
+    if (!serverOn) { alert('서버가 연결되어 있지 않아요'); return; }
+    if (!allow.ai) { alert('선생님이 AI를 열어 주면 할 수 있어요'); return; }
+    document.getElementById('cutHint').textContent = 'AI가 배경을 지우는 중… (약 10초)';
+    StageServer.call('ai', { seat: seat, dataUrl: cv.toDataURL('image/jpeg', 0.85), desc: '', mode: 'cutout' }).then(function (r) {
+      if (!r || !r.ok) { document.getElementById('cutHint').textContent = (r && r.msg) || 'AI가 실패했어요'; return; }
+      var im = new Image(); im.onload = function () { var cut = miniEngine.cutout(im, 800); if (!cut) return; snap(); W = cut.width; H = cut.height; cv.width = W; cv.height = H; ctx.drawImage(cut, 0, 0); document.getElementById('cutHint').textContent = '남은 부분은 톡톡 눌러 더 지워요.'; }; im.src = r.dataUrl;
+    });
+  };
+  document.getElementById('cutCancel').onclick = function () { ed.classList.remove('on'); };
+  document.getElementById('cutDone').onclick = function () {
+    ed.classList.remove('on');
+    var cr = StageGuides.cropBox(cv, 4); if (!cr) { msg('drawMsg', '남은 부분이 없어요', 'no'); return; }
+    P.clear(); P.putImage(cr.canvas); P.photo = false;
+    msg('drawMsg', '대상만 남겼어요. 더 그리거나, 방향과 설명을 정해요.', 'ok');
+  };
+  return { open: open };
+})();
 /* ④ 흐리게 깔고 따라 그리기: 사진은 도안(guide) 층에만 들어가고 결과엔 남지 않는다 */
 document.getElementById('optTrace').onclick = function () {
   closeSheet(); var gc = document.getElementById('guide'), c = gc.getContext('2d'); c.clearRect(0, 0, 800, 800);
@@ -489,7 +564,7 @@ function spriteFromCanvas() {
 function finishSprite(r, how, ai) {
   var canvas = r.canvas || r, desc = document.getElementById('desc').value.trim();
   result = { id: 'k' + seat + '_' + Date.now(), kind: 'sprite', seat: seat, nick: nick, cat: (ai && ai.cat) || curEx.cat, catName: curEx.nm, desc: desc, abil: (ai && ai.abil) || miniEngine.parseAbilities(desc), dataUrl: canvas.toDataURL('image/png'), how: how, sent: false,
-             rig: (r.rigBox && curEx.guide) ? curEx.guide : null, rigBox: r.rigBox || null };
+             rig: (r.rigBox && curEx.guide) ? curEx.guide : null, rigBox: Object.assign({}, r.rigBox || {}, { face: face }), face: face };
   document.getElementById('resultImg').src = result.dataUrl;
   document.getElementById('resultBox').style.display = '';
   store.items.push(result); save();
@@ -526,7 +601,7 @@ function aiTransform(dataUrl, desc, ex) {
 var lastAi = null;
 function sendSprite(it) {
   if (serverOn) StageServer.call('send', { id: it.id, kind: 'sprite' });       // 서버가 프로젝터에 전달
-  else StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, dataUrl: it.dataUrl, transparent: true });
+  else StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, face: it.face, dataUrl: it.dataUrl, transparent: true });
   it.sent = true; save();
 }
 document.getElementById('sendSprite').onclick = function () { sendSprite(result); msg('drawMsg', '무대로 보냈어요! 프로젝터를 봐요 👀', 'ok'); renderHome(); var id = result.id; setTimeout(function () { openCtrl(id); }, 1200); };
@@ -590,8 +665,9 @@ function openCtrl(id) {
 function setDir(dx, dy) { if (!ctrlId) return; holdDir = [dx, dy]; StageRT.sendCtrl(ctrlId, dx, dy); clearInterval(holdTimer); if (dx || dy) holdTimer = setInterval(function () { StageRT.sendCtrl(ctrlId, dx, dy); }, 1500); }   // 누르고 있는 동안 1.5초마다 다시 알림(3초 자동 복귀 방지)
 document.querySelectorAll('.pad [data-d]').forEach(function (b) {
   var d = b.dataset.d.split(',').map(Number);
-  b.addEventListener('pointerdown', function (e) { e.preventDefault(); b.classList.add('on'); setDir(d[0], d[1]); });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { b.addEventListener(ev, function () { if (!b.classList.contains('on')) return; b.classList.remove('on'); setDir(0, 0); }); });
+  b.addEventListener('pointerdown', function (e) { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} b.classList.add('on'); setDir(d[0], d[1]); });
+  ['pointerup', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function (e) { if (!b.classList.contains('on')) return; b.classList.remove('on'); setDir(0, 0); }); });   // 손가락이 살짝 움직여도 계속 누른 것으로
+  b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 });
 document.getElementById('padStop').onclick = function () { setDir(0, 0); };
 function sendChat() { var t = document.getElementById('chatIn').value.trim(); if (!t || !ctrlId) return; StageRT.sendChat(ctrlId, seat, nick, t); document.getElementById('chatIn').value = ''; msg('ctrlMsg', '말풍선을 띄웠어요 💬', 'ok'); }
@@ -627,7 +703,7 @@ function renderStageItems() {
   var box = document.getElementById('stageItems'); box.innerHTML = '';
   store.items.filter(function (i) { return i.kind === 'sprite'; }).forEach(function (it) {
     var d = document.createElement('div'); d.className = 'item'; d.innerHTML = '<img src="' + it.dataUrl + '"><p>' + (it.desc || it.catName) + '<br><b>눌러서 올리기</b></p>';
-    d.onclick = function () { var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); miniEngine.add(c, { seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox }); }; im.src = it.dataUrl; };
+    d.onclick = function () { var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); miniEngine.add(c, { seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, face: it.face }); }; im.src = it.dataUrl; };
     box.appendChild(d);
   });
   if (!store.items.some(function (i) { return i.kind === 'sprite'; })) box.innerHTML = '<p class="small">아직 그림이 없어요. 그림 만들기에서 먼저 그려요.</p>';
