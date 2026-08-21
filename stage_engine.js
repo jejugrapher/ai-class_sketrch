@@ -875,6 +875,7 @@ requestAnimationFrame(step);
   function add(img, meta) { meta = meta || {}; if (meta.id) { var dup = sprites.some(function (s) { return s.id === meta.id; }); if (dup) return null; }
     var keep = opts.idFor; opts.idFor = meta.id ? function () { return meta.id; } : null; opts._rig = meta.rig ? { name: meta.rig, box: meta.rigBox } : null; addSprite(img, meta.seat, meta.cat, meta.nick, meta.desc); opts.idFor = keep; opts._rig = null;
     var sp = sprites[sprites.length - 1]; if (meta.abil) { sp.abil = meta.abil; applyRules(sp, true); }
+    sp.demo = !!meta.demo;
     var face = meta.face || (meta.rigBox && meta.rigBox.face);                 // 아이가 고른 그림 방향이 도안 기본값보다 우선
     if (face) { sp.faceLeft = face === 'left'; sp.noFlip = face === 'front'; }
     return sp; }
@@ -884,13 +885,23 @@ requestAnimationFrame(step);
     var sp = findSprite(id); if (!sp || (sp.ctrl && !sp.ctrl.follow)) return false;
     if (sp.ctrl && sp.ctrl.follow) release(sp);
     if (!dx && !dy) { if (sp.manual) sp.manual.until = performance.now() + 400; return true; }   // 손을 뗌: 잠깐 뒤 자동 복귀
+    /* 규칙에 묶인 것은 못 움직인다 (설명으로 능력을 받은 그림은 예외) */
+    if (sp.motion === 'sink' || sp.motion === 'ride') { stuck(sp, '난 못 움직여…'); return 'stuck'; }
+    if (sp.motion === 'hidden' || sp.motion === 'fin' || sp.motion === 'breach') { if (dy < 0) { stuck(sp, '물 밖으론 못 나가!'); return 'stuck'; } }
+    var b = cur().band;
+    if ((sp.motion === 'swim' || sp.motion === 'clam') && dy < 0 && b.swim && sp.y <= H*b.swim[0] + 4) { stuck(sp, '물 밖으론 못 나가!'); return 'stuck'; }   // 물고기·잠수함은 수면 위로 못 간다
+    if (sp.motion === 'fly' && dy > 0 && b.sky && sp.y >= H*b.sky[1] - 4) { stuck(sp, '더는 못 내려가!'); return 'stuck'; }
     sp.manual = { dx: dx, dy: dy, until: performance.now() + 3500 }; sp.rising = false;
-    if (sp.motion === 'sink' && sp.settled) { sp.motion = 'swim'; sp.settled = false; }          // 가라앉은 것도 조종하면 움직인다
     return true;
   }
+  function stuck(sp, text) { if (!sp.chat || sp.chat.text !== text) sp.chat = { text: text, at: performance.now(), until: performance.now() + 2500 }; }
   function friendsById(idA, idB) { var a = findSprite(idA), b = findSprite(idB); if (!a || !b) return false; endScene(); a.manual = null; b.manual = null; return friends([a, b]); }
   /* 화면 안 그림들의 위치(0~1 비율). 아이 화면의 '가까운 친구' 판단용 */
-  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '' }; }); return o; }
+  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0 }; }); return o; }
+  function nearestDemo(id, maxFrac) { var me = findSprite(id); if (!me) return null; var best = null, bd = (maxFrac || 0.35)*W;
+    sprites.forEach(function (sp) { if (!sp.demo || sp === me || sp.x < 0 || sp.x > W) return; var d = Math.hypot(sp.x - me.x, sp.y - me.y); if (d < bd) { bd = d; best = sp; } }); return best; }
+  function dash(id, secs) { var sp = findSprite(id); if (!sp) return; sp.speed *= 3; setTimeout(function () { sp.speed /= 3; }, (secs || 4)*1000); }
+  function flee(id, fromId) { var sp = findSprite(id), f = findSprite(fromId); if (!sp) return; sp.dir = f && f.x > sp.x ? -1 : 1; sp.manual = null; dash(id, 3); if (sp.jumpT === undefined) sp.jumpT = (performance.now() - t0)/1000; }
   function chat(id, text) {
     var sp = findSprite(id); if (!sp) return false;
     text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 40); if (!text) return false;
@@ -899,6 +910,7 @@ requestAnimationFrame(step);
   }
   return {
     add: add, clear: clear, removeSprite: removeSprite, control: control, chat: chat, find: findSprite, duel: duel, friendsById: friendsById, positions: positions,
+    nearestDemo: nearestDemo, dash: dash, flee: flee,
     duelScores: function (sa, sb) { if (scene && scene.name === 'duel') scene.setScores(sa, sb); }, sceneName: function () { return scene ? scene.name : null; }, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
     friends: function () { endScene(); friends(pickTwo()); }, tournament: function () { endScene(); tournament(); }, dance: function () { endScene(); dance(); }, endScene: endScene,
     setAuto: function (v) { autoPlay = !!v; }, getAuto: function () { return autoPlay; }, sound: Sound, cutout: cutoutPaper, parseAbilities: parseAbilities,

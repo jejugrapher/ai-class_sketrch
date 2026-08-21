@@ -220,7 +220,7 @@
 <!-- G 조종 -->
 <div class="page" id="pCtrl">
   <h2>무대에서 내 그림 움직이기</h2>
-  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요.</p>
+  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요.<br>가라앉은 것은 못 움직이고, 물고기·잠수함은 물 밖으로 못 나가요(설명에 능력을 써 주면 달라져요).</p>
   <div class="ctrlPick" id="ctrlPick"></div>
   <div class="pad">
     <span></span><button data-d="0,-1">▲</button><span></span>
@@ -709,16 +709,16 @@ function renderNear() {
   if (!ctrlId || !posMap[ctrlId]) { document.getElementById('nearBox').innerHTML = '<p class="small">내 그림이 무대에 보이면 친구를 찾아요.</p>'; return; }
   var me = posMap[ctrlId], mine = myItems(), list = [];
   Object.keys(posMap).forEach(function (id) { if (id === '_t' || id === ctrlId || mine.indexOf(id) >= 0) return; var o = posMap[id]; if (!o || typeof o.x !== 'number') return;
-    var d = Math.hypot(o.x - me.x, (o.y - me.y)*0.56); if (d < 0.16) list.push({ id: id, d: d, nick: o.nick, seat: o.seat }); });
+    var d = Math.hypot(o.x - me.x, (o.y - me.y)*0.56); if (d < 0.16) list.push({ id: id, d: d, nick: o.nick, seat: o.seat, demo: o.demo }); });
   list.sort(function (p, q) { return p.d - q.d; }); nearIds = list.map(function (l) { return l.id; });
   var box = document.getElementById('nearBox'); box.innerHTML = '';
   if (!list.length) { box.innerHTML = '<p class="small">아직 가까운 친구가 없어요. 화살표로 다가가 봐요.</p>'; return; }
   list.slice(0, 3).forEach(function (f) {
     var d = document.createElement('div'); d.className = 'near';
-    d.innerHTML = '<b>' + (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + '</b><div class="row"><button class="btn g">🤝 친구하기</button><button class="btn p">🤼 씨름하기</button></div>';
+    d.innerHTML = '<b>' + (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + (f.demo ? ' <span class="small">(무대 친구)</span>' : '') + '</b><div class="row"><button class="btn g">🤝 친구하기</button><button class="btn p">🤼 씨름하기</button></div>';
     var bs = d.querySelectorAll('button');
     bs[0].onclick = function () { StageRT.sendReq({ type: 'friend', from: ctrlId, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '와 친구가 됐어요 💛', 'ok'); };
-    bs[1].onclick = function () { StageRT.sendReq({ type: 'ssireum', from: ctrlId, fromNick: nick, fromSeat: seat, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '에게 씨름을 신청했어요. 수락을 기다려요…', ''); };
+    bs[1].onclick = function () { StageRT.sendReq({ type: 'ssireum', from: ctrlId, fromNick: nick, fromSeat: seat, to: f.id }); msg('ctrlMsg', f.demo ? '씨름 시작! 화면이 열리면 연타해요' : (f.nick || '친구') + '에게 씨름을 신청했어요. 수락을 기다려요…', ''); };
     box.appendChild(d);
   });
 }

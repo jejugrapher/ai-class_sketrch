@@ -64,7 +64,7 @@ function toCanvas(im) { var c = document.createElement('canvas'); c.width = im.w
 function addRigSamples() {
     var cols = ['#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#ffb703', '#cdb4db', '#90be6d'];
     var cats = { whale: 'whale', oarfish: 'fish', crab: 'crawler', clam: 'clam', squid: 'fish', octopus: 'crawler', haenyeo: 'person', person: 'person', bird: 'bird', raft: 'boat', sailboat: 'boat', car: 'vehicle', airplane: 'aircraft', paperplane: 'light', submarine: 'sub' };
-    StageGuides.names.forEach(function (n, i) { var smp = StageGuides.sample(n, cols[i % cols.length]); if (smp) E.add(smp.canvas, { seat: (i % 15) + 1, nick: StageDemos.NICKS[i % 12], cat: cats[n] || 'fish', rig: smp.rig, rigBox: smp.rigBox }); });
+    StageGuides.names.forEach(function (n, i) { var smp = StageGuides.sample(n, cols[i % cols.length]); if (smp) { var sp = E.add(smp.canvas, { id: 'demo_' + n, seat: 0, nick: StageDemos.NICKS[i % 12], cat: cats[n] || 'fish', rig: smp.rig, rigBox: smp.rigBox, demo: true }); } });
 }
 
 /* 강사 명령 받기 */
@@ -90,7 +90,33 @@ StageRT.onChat(function (id, text) { E.chat(id, text); });
 StageRT.init('stage').then(function (mode) {
   rtMode = mode; if (mode !== 'firebase') return;
   setInterval(function () { StageRT.publishPos(E.positions()); }, 500);               // 위치 공유 (가까운 친구 판단)
-  StageRT.onReq(function (r) { if (r.type === 'friend') E.friendsById(r.from, r.to); });   // 친구하기는 바로 효과
+  StageRT.onReq(function (r) {
+    if (r.type === 'friend') E.friendsById(r.from, r.to);                             // 친구하기는 바로 효과
+    if (r.type === 'ssireum') { var t = E.find(r.to); if (t && t.demo) startDemoDuel(r.from, r.to); }   // 예시 캐릭터는 수락 없이 바로
+  });
+  /* 예시 캐릭터와의 씨름: 프로젝터가 대결을 만들고 예시 캐릭터 몫의 연타도 넣는다 */
+  function startDemoDuel(kidId, demoId) {
+    if (E.sceneName() === 'duel') return;
+    var key = StageRT.createMatch({ a: kidId, b: demoId, status: 'go', score: {} }); if (!key) return;
+    var t = setInterval(function () { StageRT.tap(key, demoId, Math.random() < 0.5 ? 2 : 1); }, 450 + Math.random()*250);   // 초당 2~3점
+    setTimeout(function () { clearInterval(t); }, 12000);
+  }
+  /* 예시 캐릭터가 아이 말에 반응한다 */
+  var REPLY = [
+    [/안녕/, function (d, me) { return '안녕! 난 ' + (d.nick || '친구') + '야'; }],
+    [/여기 있어/, function (d, me) { E.control(d.id, me.x > d.x ? 1 : -1, 0); return '찾았다! 거기 있었구나'; }],
+    [/같이 놀자/, function (d, me) { E.friendsById(me.id, d.id); return '좋아, 같이 놀자!'; }],
+    [/씨름/, function (d, me) { startDemoDuel(me.id, d.id); return '덤벼 봐!'; }],
+    [/춤/, function (d, me) { E.dash(d.id, 3); return '🎵 같이 춤추자!'; }],
+    [/빨라/, function (d, me) { E.dash(d.id, 5); return '나도 엄청 빨라!'; }],
+    [/배고파/, function (d, me) { return '나도 배고파… 냠냠'; }],
+    [/으악|깜짝/, function (d, me) { E.flee(d.id, me.id); return '깜짝이야!!'; }]
+  ];
+  StageRT.onChat(function (id, text) {
+    var me = E.find(id), d = E.nearestDemo(id, 0.4); if (!me || !d) return;
+    for (var i = 0; i < REPLY.length; i++) if (REPLY[i][0].test(text)) { var r = REPLY[i][1](d, me); setTimeout(function () { E.chat(d.id, r); }, 900); return; }
+    setTimeout(function () { E.chat(d.id, ['응?', '그렇구나!', '재밌다', '히히'][Math.floor(Math.random()*4)]); }, 900);
+  });
   var running = {};
   StageRT.onMatch(function (m, key) {                                                 // 씨름: 수락되면 대결 시작, 점수 반영
     if (m.status === 'go' && !running[key] && E.sceneName() !== 'duel') {
