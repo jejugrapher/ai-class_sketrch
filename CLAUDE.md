@@ -22,6 +22,7 @@
 
 - 서버는 `apps-script/Code.gs` 하나. 요청은 `{action, ...}` JSON POST(text/plain → preflight 없음). 강사 요청은 `key`(= gate 암호) 필요. 명령은 번호(seq)를 붙여 최근 60개 보관, 프로젝터·아이는 `poll {since}` 로 받는다. 그림은 Drive, 기록은 시트 `items`.
 - 같은 메시지가 창 간 통신과 서버 양쪽으로 올 수 있어 `mid` 로 중복을 걸러낸다(`stage_bus.js`).
+- 조종·채팅은 `stage_rt.js` (Firebase 있으면 RTDB `room/ctrl/{id}`, `room/chat`; 없으면 서버 `ctrl`/`chat` 명령 → poll). 엔진 `control(id,dx,dy)` 는 3.5초 뒤 자동 복귀, `chat(id,text)` 는 말풍선.
 - 서버 로직을 바꾸면 `apps-script/mock_server.py` 도 같이 맞춘다(로컬 시험용).
 
 ## 남은 일

@@ -37,6 +37,7 @@
 <script src="../stage_guides.js"></script>
 <script src="../stage_bus.js"></script>
 <script src="../stage_server.js"></script>
+<script src="../stage_rt.js"></script>
 <script>
 var tag = document.getElementById('tag');
 var E = new StageEngine({ canvas: document.getElementById('c'), soundBase: '../assets/sound/',
@@ -83,9 +84,14 @@ StageBus.on(function (m) {
   }
 });
 setInterval(function () { StageBus.send({ type: 'status', count: E.sprites().length, world: E.world() }); }, 3000);
+/* 아이 조종·채팅 */
+StageRT.onCtrl(function (id, dx, dy) { E.control(id, +dx || 0, +dy || 0); });
+StageRT.onChat(function (id, text) { E.chat(id, text); });
+StageRT.init('stage').then(function (mode) { rtMode = mode; });
+var rtMode = 'local';
 var online = false;
 StageServer.init('stage', { onOnline: function () { online = true; }, onOffline: function () { online = false; } });
-setInterval(function () { var t = tag.textContent.replace(/ · (서버|같은 기기)$/, ''); tag.textContent = t + ' · ' + (online ? '서버' : '같은 기기'); }, 3000);
+setInterval(function () { var t = tag.textContent.replace(/ · (서버|같은 기기)$/, ''); tag.textContent = t + ' · ' + (online ? '서버' : '같은 기기') + (rtMode === 'firebase' ? ' · 실시간' : ''); }, 3000);
 
 /* 개발용 조작판: ?dev=1 */
 if (/[?&]dev=1/.test(location.search)) {

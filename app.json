@@ -1,4 +1,13 @@
 {
   "exec": "https://script.google.com/macros/s/AKfycbwDxhAqlH5A9Rc2xhkSKVpTdXTdVY5s_b5w4slNjR--3dRO0TME-lQEP6pVKvJmMC2L/exec",
-  "teacherKey": "stage"
+  "teacherKey": "stage",
+  "firebase": {
+    "apiKey": "AIzaSyCaCTx8NmsDvI7SOz5R8sgXABCr2-ySnB0",
+    "authDomain": "ai-class-sketrch.firebaseapp.com",
+    "databaseURL": "https://ai-class-sketrch-default-rtdb.firebaseio.com",
+    "projectId": "ai-class-sketrch",
+    "storageBucket": "ai-class-sketrch.firebasestorage.app",
+    "messagingSenderId": "648614543804",
+    "appId": "1:648614543804:web:7a64e55ad22b9debb2abb9"
+  }
 }

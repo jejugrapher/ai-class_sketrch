@@ -63,6 +63,15 @@
   .row .btn { flex:1; text-align:center; }
   .small { font-size:14px; color:#556; }
   #photoIn { display:none; }
+  .pad { display:grid; grid-template-columns: repeat(3, 84px); grid-template-rows: repeat(3, 84px); gap:8px; justify-content:center; margin:14px auto; }
+  .pad button { font-size:34px; border:0; border-radius:16px; background:#ff9f1c; color:#fff; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .pad button:active, .pad button.on { background:#c2410c; }
+  .pad .c { background:#e6ebf2; color:#556; font-size:14px; }
+  .chatrow { display:flex; gap:8px; }
+  .chatrow input { flex:1; }
+  .ctrlPick { display:flex; gap:8px; overflow-x:auto; padding:4px 0; }
+  .ctrlPick img { width:64px; height:64px; object-fit:contain; background:#fff; border:3px solid #e6ebf2; border-radius:12px; }
+  .ctrlPick img.on { border-color:#ff9f1c; }
   #sheet { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:flex-end; z-index:20; }
   #sheet.on { display:flex; }
   #sheet .box { background:#fff; width:100%; border-radius:20px 20px 0 0; padding:16px 16px 28px; }
@@ -91,6 +100,7 @@
     <button class="btn p" id="goDraw">✏️ 그림 만들기</button>
     <button class="btn g" id="goWorld">🗺️ 배경 만들기</button>
     <button class="btn b" id="goStage">🎬 내 무대</button>
+    <button class="btn" id="goCtrl" style="background:#ffd166">🕹️ 조종하기</button>
   </div>
   <div id="allowNote" class="msg"></div>
   <h2>내가 만든 것</h2>
@@ -117,7 +127,7 @@
       <button class="tool" id="undo">되돌리기</button>
       <button class="tool" id="clearDraw">다 지우기</button>
       <button class="tool" id="guideToggle">도안 끄기</button>
-      <label class="tool" id="photoBtn" style="display:none">📷 사진<input type="file" id="photoIn" accept="image/*" capture="environment"></label>
+      <label class="tool" id="photoBtn" style="display:none">📷 사진·앨범<input type="file" id="photoIn" accept="image/*"></label>
     </div>
     <h2>이 그림을 설명해요</h2>
     <textarea id="desc" placeholder="예: 밤바다에서 별빛을 받으며 천천히 헤엄치는 고래"></textarea>
@@ -162,7 +172,7 @@
       <button class="tool" id="wfill">바탕 채우기</button>
       <button class="tool" id="wundo">되돌리기</button>
       <button class="tool" id="wclear">다 지우기</button>
-      <label class="tool" id="wphotoBtn" style="display:none">📷 사진<input type="file" id="wphotoIn" accept="image/*" capture="environment"></label>
+      <label class="tool" id="wphotoBtn" style="display:none">📷 사진·앨범<input type="file" id="wphotoIn" accept="image/*"></label>
     </div>
     <p class="small" id="lineNote">파란 선 = 물 표면, 갈색 선 = 땅. 동그라미를 잡고 위아래로 옮겨요.</p>
     <h2>이곳 이름과 설명</h2>
@@ -174,6 +184,22 @@
     </div>
     <div id="worldMsg"></div>
   </div>
+</div>
+
+<!-- G 조종 -->
+<div class="page" id="pCtrl">
+  <h2>무대에서 내 그림 움직이기</h2>
+  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요.</p>
+  <div class="ctrlPick" id="ctrlPick"></div>
+  <div class="pad">
+    <span></span><button data-d="0,-1">▲</button><span></span>
+    <button data-d="-1,0">◀</button><button class="c" id="padStop">멈춤</button><button data-d="1,0">▶</button>
+    <span></span><button data-d="0,1">▼</button><span></span>
+  </div>
+  <h2>말하기</h2>
+  <div class="chatrow"><input type="text" id="chatIn" maxlength="40" placeholder="예: 안녕! 나는 번개상어야"><button class="btn p" id="chatSend">말하기</button></div>
+  <div class="chips" id="chatChips"></div>
+  <div id="ctrlMsg"></div>
 </div>
 
 <!-- E 내 무대 -->
@@ -205,6 +231,7 @@
 <script src="../stage_guides.js"></script>
 <script src="../stage_bus.js"></script>
 <script src="../stage_server.js"></script>
+<script src="../stage_rt.js"></script>
 <script>
 /* ───────── 자료 ───────── */
 var NICKS = ['번개상어','무지개고래','용감한게','반짝별','바다친구','초록거북','노랑오리','하늘새','씩씩이','방글이','테우선장','해녀삼춘'];
@@ -224,7 +251,7 @@ var EXHIBITS = [
   { id:'airplane', nm:'비행기',   cat:'aircraft', guide:'airplane', tags:['구름 위를 날며','하늘을 가르며','빙글 돌며','착륙하는'] },
   { id:'paperplane', nm:'종이비행기', cat:'light', guide:'paperplane', tags:['바람에 실려','살랑살랑','멀리 날아가는','빙글 도는'] },
   { id:'submarine', nm:'잠수함',  cat:'sub',     guide:'submarine', tags:['깊은 바다로','잠망경을 올리고','거품을 내며','조용히'] },
-  { id:'photo',    ic:'📷', nm:'사진 따라 그리기', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','걸어다니는','떠다니는','반짝이는'] },
+  { id:'photo',    ic:'📷', nm:'사진·앨범 따라 그리기', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','걸어다니는','떠다니는','반짝이는'] },
   { id:'free',     ic:'🎨', nm:'내 마음대로', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','반짝이는','커다란','아주 작은','웃고 있는'] }
 ];
 var COMMON_TAGS = ['친구와 함께','신나게 춤추며','씨름을 하며','빙글빙글 돌며'];
@@ -312,6 +339,7 @@ function renderHome() {
 document.getElementById('goDraw').onclick = function () { resetDraw(); show('pDraw'); };
 document.getElementById('goWorld').onclick = function () { resetWorld(); show('pWorld'); };
 document.getElementById('goStage').onclick = function () { show('pStage'); };
+document.getElementById('goCtrl').onclick = function () { openCtrl(null); };
 
 /* ───────── 그림판 공통 ───────── */
 function Painter(canvas, w, h, opts) {
@@ -462,7 +490,7 @@ function sendSprite(it) {
   else StageBus.send({ type: 'sprite', id: it.id, seat: it.seat, nick: it.nick, cat: it.cat, desc: it.desc, abil: it.abil, rig: it.rig, rigBox: it.rigBox, dataUrl: it.dataUrl, transparent: true });
   it.sent = true; save();
 }
-document.getElementById('sendSprite').onclick = function () { sendSprite(result); msg('drawMsg', '무대로 보냈어요! 프로젝터를 봐요 👀', 'ok'); renderHome(); setTimeout(function () { show('pHome'); }, 1200); };
+document.getElementById('sendSprite').onclick = function () { sendSprite(result); msg('drawMsg', '무대로 보냈어요! 프로젝터를 봐요 👀', 'ok'); renderHome(); var id = result.id; setTimeout(function () { openCtrl(id); }, 1200); };
 document.getElementById('keepSprite').onclick = function () { renderHome(); show('pHome'); };
 
 /* ───────── D 배경 만들기 ───────── */
@@ -506,6 +534,33 @@ document.getElementById('saveWorld').onclick = function () {
   serverSave(it);
   show('pStage'); setTimeout(function () { useWorld('my_' + it.id); }, 300);
 };
+
+/* ───────── G 조종·채팅 ───────── */
+var ctrlId = null, holdDir = null, holdTimer = null;
+StageRT.init('kid').then(function (mode) { if (mode === 'server') msg('ctrlMsg', '서버 경로라 조금 느리게(1~3초) 움직여요', ''); });
+function openCtrl(id) {
+  var sent = store.items.filter(function (i) { return i.kind === 'sprite' && i.sent; });
+  if (!sent.length) { msg('ctrlMsg', '먼저 그림을 무대로 보내요', 'no'); show('pCtrl'); return; }
+  ctrlId = id || sent[sent.length - 1].id;
+  var box = document.getElementById('ctrlPick'); box.innerHTML = '';
+  sent.forEach(function (it) { var im = document.createElement('img'); im.src = it.dataUrl; im.className = it.id === ctrlId ? 'on' : ''; im.onclick = function () { ctrlId = it.id; box.querySelectorAll('img').forEach(function (x) { x.classList.toggle('on', x === im); }); }; box.appendChild(im); });
+  var chips = document.getElementById('chatChips'); chips.innerHTML = '';
+  ['안녕!', '나 여기 있어', '같이 놀자', '씨름하자!', '춤추자 🎵', '내가 제일 빨라', '배고파', '으악!'].forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { document.getElementById('chatIn').value = t; sendChat(); }; chips.appendChild(c); });
+  show('pCtrl');
+}
+function setDir(dx, dy) { if (!ctrlId) return; holdDir = [dx, dy]; StageRT.sendCtrl(ctrlId, dx, dy); clearInterval(holdTimer); if (dx || dy) holdTimer = setInterval(function () { StageRT.sendCtrl(ctrlId, dx, dy); }, 1500); }   // 누르고 있는 동안 1.5초마다 다시 알림(3초 자동 복귀 방지)
+document.querySelectorAll('.pad [data-d]').forEach(function (b) {
+  var d = b.dataset.d.split(',').map(Number);
+  b.addEventListener('pointerdown', function (e) { e.preventDefault(); b.classList.add('on'); setDir(d[0], d[1]); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { b.addEventListener(ev, function () { if (!b.classList.contains('on')) return; b.classList.remove('on'); setDir(0, 0); }); });
+});
+document.getElementById('padStop').onclick = function () { setDir(0, 0); };
+function sendChat() { var t = document.getElementById('chatIn').value.trim(); if (!t || !ctrlId) return; StageRT.sendChat(ctrlId, seat, nick, t); document.getElementById('chatIn').value = ''; msg('ctrlMsg', '말풍선을 띄웠어요 💬', 'ok'); }
+document.getElementById('chatSend').onclick = sendChat;
+document.getElementById('chatIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
+/* 내 무대에서도 조종이 되게 */
+StageRT.onCtrl(function (id, dx, dy) { if (miniEngine) miniEngine.control(id, dx, dy); });
+StageRT.onChat(function (id, text) { if (miniEngine) miniEngine.chat(id, text); });
 
 /* ───────── E 내 무대 ───────── */
 var miniEngine = null, curWorldKey = 'sea';

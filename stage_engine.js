@@ -517,6 +517,22 @@ function drawSprite(sp, t) {
 function spawnWake(x, y) { particles.push({ type: 'splash', x: x, y: y, vx: (Math.random()-0.5)*20, vy: -10, life: 0.6, age: 0, s: 2 + Math.random()*2 }); }
 
 function label(sp) { return (sp.seat ? sp.seat + '번' : '') + (sp.nick ? ' ' + sp.nick : ''); }
+/* 말풍선: 그림을 따라다니며 몇 초 뒤 사라진다 */
+function drawBubble(sp) {
+  var c = sp.chat; if (!c) return;
+  var left = (c.until - performance.now())/1000; if (left <= 0) { sp.chat = null; return; }
+  var a = Math.min(1, left/0.5, (performance.now() - c.at)/200);
+  g.save(); g.globalAlpha = a; g.font = 'bold 24px sans-serif'; g.textAlign = 'center';
+  var lines = wrap_(c.text, 14), lh = 30, tw = 0; lines.forEach(function (l) { tw = Math.max(tw, g.measureText(l).width); });
+  var bw = tw + 32, bh = lines.length*lh + 18, bx = Math.max(8, Math.min(W - bw - 8, sp.x - bw/2)), by = spriteTop(sp) - bh - 60;
+  if (by < 8) by = spriteTop(sp) + sp.h*sp.depth + 24;
+  g.fillStyle = 'rgba(255,255,255,.96)'; g.strokeStyle = '#0b3d91'; g.lineWidth = 3;
+  g.beginPath(); g.roundRect(bx, by, bw, bh, 16); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(sp.x - 10, by + bh - 1); g.lineTo(sp.x, by + bh + 16); g.lineTo(sp.x + 10, by + bh - 1); g.closePath(); g.fill();   // 꼬리
+  g.fillStyle = '#1b2533'; lines.forEach(function (l, i) { g.fillText(l, bx + bw/2, by + 30 + i*lh); });
+  g.restore();
+}
+function wrap_(text, n) { var out = [], t = String(text); while (t.length > n) { out.push(t.slice(0, n)); t = t.slice(n); } out.push(t); return out.slice(0, 3); }
 function drawBadge(sp) {
   if (!sp.seat && !sp.nick) return;
   var under = cur() === WORLDS.sea || cur().kind === 'water';
@@ -524,7 +540,7 @@ function drawBadge(sp) {
   if (!sp.seen && sp.x > sp.w/2 && sp.x < W - sp.w/2) sp.seen = performance.now();
   if (!sp.seen) return;
   var age = (performance.now() - sp.seen)/1000;
-  var inScene = !!(sp.ctrl && !sp.ctrl.follow);      // 친구·씨름·춤 중에는 계속 보여 준다
+  var inScene = !!(sp.ctrl && !sp.ctrl.follow) || !!sp.manual || !!sp.chat;   // 장면·조종·말풍선 중에는 계속 보여 준다
   if (age > 5 && !inScene) return;
   var a = inScene ? 1 : (age < 4 ? 1 : 5 - age);
   g.save(); g.globalAlpha = a;
@@ -537,7 +553,23 @@ function drawBadge(sp) {
 }
 
 /* 평소 움직임 */
+/* 아이가 조종 중이면 그 방향으로, 3초 입력이 없으면 다시 저절로 움직인다 */
+function manualMove(sp, t, dt) {
+  var m = sp.manual; if (!m || performance.now() > m.until) { sp.manual = null; return false; }
+  var b = cur().band, mo = sp.motion, hh = halfH(sp), sp2 = 170;
+  if (m.dx) { sp.dir = m.dx > 0 ? 1 : -1; sp.x += m.dx*sp2*dt; }
+  var yOk = !(mo === 'walk' || mo === 'crawl' || mo === 'sink' || mo === 'ride' || mo === 'float' || mo === 'paddle' || mo === 'fin');   // 땅·수면 위 것은 좌우만
+  if (m.dy && yOk) { sp.y += m.dy*sp2*dt; sp.ty = sp.y; }
+  var zone = (mo === 'fly') ? (b.sky || b.swim) : b.swim;
+  if (yOk && zone) { sp.y = Math.max(H*zone[0], Math.min(H*zone[1], sp.y)); sp.ty = sp.y; }
+  sp.x = Math.max(-sp.w*sp.depth/2, Math.min(W + sp.w*sp.depth/2, sp.x));
+  if (mo === 'walk' && m.dy < 0 && sp.jumpT === undefined) sp.jumpT = t;          // 걷는 것은 ↑ 로 폴짝
+  if (sp.jumpT !== undefined) { var jt = t - sp.jumpT; sp.bounce = jt < 0.5 ? Math.sin(jt/0.5*Math.PI)*30 : 0; if (jt >= 0.5) delete sp.jumpT; }
+  if (mo === 'walk' || mo === 'crawl') sp.rot *= 0.9;
+  return true;
+}
 function roam(sp, t, dt) {
+  if (manualMove(sp, t, dt)) return;
   var b = cur().band, mo = sp.motion, hh = halfH(sp);
   var speedMul = { crawl: 0.4, walk: 0.7, paddle: 0.5, float: 0.5, fly: 1.5, drift: 0.5, sink: 0, ride: 0, hidden: 0.8, breach: 1.0, fin: 0.9, clam: 0 }[mo];
   if (mo === 'clam') speedMul = Math.max(0, Math.sin(t*1.2*2*Math.PI + sp.ph))*2.2;   // 껍데기를 닫을 때 앞으로 쑥
@@ -746,7 +778,7 @@ function step(now) {
   else if (autoPlay && sprites.length >= 2 && t - lastAuto > 25 && Math.random() < 0.01) { lastAuto = t; friends(pickTwo()); }
 
   sprites.forEach(function (sp) { if (sp.ctrl) steer(sp); else roam(sp, t, dt); });
-  sprites.slice().sort(function (p, q) { return p.depth - q.depth; }).forEach(function (sp) { drawSprite(sp, t); drawBadge(sp); });
+  sprites.slice().sort(function (p, q) { return p.depth - q.depth; }).forEach(function (sp) { drawSprite(sp, t); drawBadge(sp); drawBubble(sp); });
 
   particles = particles.filter(function (p) { return p.age < p.life; });
   particles.forEach(function (p) {
@@ -795,8 +827,24 @@ requestAnimationFrame(step);
   function add(img, meta) { meta = meta || {}; if (meta.id) { var dup = sprites.some(function (s) { return s.id === meta.id; }); if (dup) return null; }
     var keep = opts.idFor; opts.idFor = meta.id ? function () { return meta.id; } : null; opts._rig = meta.rig ? { name: meta.rig, box: meta.rigBox } : null; addSprite(img, meta.seat, meta.cat, meta.nick, meta.desc); opts.idFor = keep; opts._rig = null;
     var sp = sprites[sprites.length - 1]; if (meta.abil) { sp.abil = meta.abil; applyRules(sp, true); } return sp; }
+  function findSprite(id) { for (var i = 0; i < sprites.length; i++) if (sprites[i].id === id) return sprites[i]; return null; }
+  /* 조종: dx,dy ∈ {-1,0,1}. 입력이 없으면 3초 뒤 자동 복귀. 장면(씨름 등) 중에는 무시 */
+  function control(id, dx, dy) {
+    var sp = findSprite(id); if (!sp || (sp.ctrl && !sp.ctrl.follow)) return false;
+    if (sp.ctrl && sp.ctrl.follow) release(sp);
+    if (!dx && !dy) { if (sp.manual) sp.manual.until = performance.now() + 400; return true; }   // 손을 뗌: 잠깐 뒤 자동 복귀
+    sp.manual = { dx: dx, dy: dy, until: performance.now() + 3500 }; sp.rising = false;
+    if (sp.motion === 'sink' && sp.settled) { sp.motion = 'swim'; sp.settled = false; }          // 가라앉은 것도 조종하면 움직인다
+    return true;
+  }
+  function chat(id, text) {
+    var sp = findSprite(id); if (!sp) return false;
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 40); if (!text) return false;
+    sp.chat = { text: text, at: performance.now(), until: performance.now() + 4000 + text.length*120 };
+    Sound.play('enter'); return true;
+  }
   return {
-    add: add, clear: clear, removeSprite: removeSprite, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
+    add: add, clear: clear, removeSprite: removeSprite, control: control, chat: chat, find: findSprite, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
     friends: function () { endScene(); friends(pickTwo()); }, tournament: function () { endScene(); tournament(); }, dance: function () { endScene(); dance(); }, endScene: endScene,
     setAuto: function (v) { autoPlay = !!v; }, getAuto: function () { return autoPlay; }, sound: Sound, cutout: cutoutPaper, parseAbilities: parseAbilities,
     sprites: function () { return sprites; }, world: function () { return world; }, say: function (t, c) { say(t, W/2, H*0.2, c || '#ffd166'); }
