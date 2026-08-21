@@ -4,7 +4,10 @@
 (function () {
   var HASH = '3b80e40af4fe01612be6b70d750accab80974c91e6d9a347f816920a6f1ed375';
   var KEY = 'stageGateOk';
-  if (sessionStorage.getItem(KEY) === HASH) return;
+  /* 암호 통과 뒤에 할 일은 window.gateReady.then(...) 으로 기다린다 (서버 연결 등) */
+  var resolveGate; window.gateReady = new Promise(function (res) { resolveGate = res; });
+  if (sessionStorage.getItem(KEY) === HASH && sessionStorage.getItem('stageGatePw')) { resolveGate(); return; }
+  sessionStorage.removeItem(KEY);
   function sha256(str) { return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }); }
   function build() {
     var ov = document.createElement('div'); ov.id = 'gateOverlay';
@@ -17,7 +20,7 @@
     document.body.appendChild(ov);
     var f = ov.querySelector('form'), pw = ov.querySelector('#gatePw'), msg = ov.querySelector('#gateMsg');
     pw.focus();
-    f.onsubmit = function (e) { e.preventDefault(); sha256(pw.value).then(function (h) { if (h === HASH) { sessionStorage.setItem(KEY, HASH); sessionStorage.setItem('stageGatePw', pw.value); ov.remove(); } else { msg.textContent = '암호가 다릅니다'; pw.value = ''; pw.focus(); } }); };
+    f.onsubmit = function (e) { e.preventDefault(); sha256(pw.value).then(function (h) { if (h === HASH) { sessionStorage.setItem(KEY, HASH); sessionStorage.setItem('stageGatePw', pw.value); ov.remove(); resolveGate(); } else { msg.textContent = '암호가 다릅니다'; pw.value = ''; pw.focus(); } }); };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();

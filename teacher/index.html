@@ -193,11 +193,11 @@ renderGallery();
 /* 프로젝터 상태 + 아이 배경 제출 받기 */
 var statusEl = document.getElementById('status'), lastSeen = 0;
 StageBus.on(function (m) {
-  if (m.type === 'status') { lastSeen = Date.now(); statusEl.textContent = '프로젝터: 연결됨 · ' + m.count + '개 · ' + m.world; }
+  if (m.type === 'status') { lastSeen = Date.now(); statusEl.textContent = '프로젝터: 연결됨 · ' + m.count + '개 · ' + m.world + (serverOn ? ' · 서버 연결됨' : ''); }
   if (m.type === 'submitWorld') { kidWorlds[m.id] = m; renderKidWorlds(); }
   if (m.type === 'sprite') { gallery[m.id] = m; renderGallery(); }
 });
-setInterval(function () { if (Date.now() - lastSeen > 8000) statusEl.textContent = '프로젝터: 연결 대기'; }, 2000);
+setInterval(function () { if (Date.now() - lastSeen > 8000) statusEl.textContent = '프로젝터: 연결 대기' + (serverOn ? ' · 서버 연결됨' : ''); }, 2000);
 StageBus.send({ type: 'ping' });
 
 document.getElementById('openStage').onclick = function () { window.open('../stage/', 'sketch-stage-projector'); };
@@ -224,7 +224,7 @@ function refreshFromServer() {
   });
 }
 StageServer.init('teacher', { onOnline: function (u) {
-  serverOn = true; statusEl.textContent += ' · 서버 연결됨';
+  serverOn = true; statusEl.textContent = statusEl.textContent.replace(' · 서버 연결됨', '') + ' · 서버 연결됨';
   StageServer.call('state').then(function (r) { if (r && r.ok) { state.allow = r.allow; save(); document.querySelectorAll('#switches input').forEach(function (i) { i.checked = !!state.allow[i.dataset.k]; }); } });
   refreshFromServer(); setInterval(refreshFromServer, 5000);
 }, onOffline: function () { document.getElementById('kidWorldsNote').textContent += ' (지금은 같은 기기 창끼리만 연결됩니다. app.json 에 서버 주소가 없습니다)'; } });

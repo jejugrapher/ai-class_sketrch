@@ -14,7 +14,7 @@ var StageServer = (function () {
       if (!u) return null;
       var body = Object.assign({ action: action }, data || {});
       return fetch(u, { method: 'POST', body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (j) {   // text/plain → 사전 요청(preflight) 없음
-        if (j && j.ok === false && /열쇠/.test(j.msg || '') && body.key !== undefined) {             // 강사 열쇠 불일치 → 암호를 다시 묻는다
+        if (j && j.ok === false && /열쇠/.test(j.msg || '') && body.key !== undefined && sessionStorage.getItem('stageGatePw')) {   // 입력한 강사 암호가 서버 열쇠와 다름 → 다시 묻는다
           sessionStorage.removeItem('stageGateOk'); sessionStorage.removeItem('stageGatePw'); if (!window._gateReloading) { window._gateReloading = true; alert('강사 암호를 다시 입력해 주세요'); location.reload(); }
         }
         return j;
@@ -30,7 +30,8 @@ var StageServer = (function () {
 
   function init(role, opts) {
     opts = opts || {};
-    return load().then(function (u) {
+    var wait = (role === 'teacher' && window.gateReady) ? window.gateReady : Promise.resolve();   // 강사: 암호 통과 뒤에 연결
+    return wait.then(load).then(function (u) {
       if (!u) { if (opts.onOffline) opts.onOffline(); return false; }
       if (role === 'teacher') {
         StageBus.setServer({ post: function (m) {                           // 강사 명령 → 서버
