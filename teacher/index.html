@@ -50,14 +50,12 @@
   <span class="st" id="status">프로젝터: 연결 대기</span>
   <button class="blue" id="openStage">프로젝터 창 열기</button>
 </header>
-<div style="display:flex;gap:14px;align-items:center;padding:10px 18px;background:#fff;border-bottom:1px solid #e6ebf2">
-  <img src="../assets/qr_kid.png" style="width:72px;height:72px">
-  <div style="font-size:14px;line-height:1.5"><b>아이 화면 주소</b><br><a href="../kid/" target="_blank">https://jejugrapher.github.io/ai-class_sketrch/kid/</a><br><span class="muted">프로젝터에는 처음에 이 QR이 크게 나옵니다. [QR 보이기 / 숨기기]로 다시 띄울 수 있습니다.</span></div>
-</div>
+
 <main>
   <section>
     <h2>무대 공간</h2>
     <div class="worlds" id="worlds">
+      <div class="card w" data-w="qr"><img src="../assets/qr_kid.png" style="aspect-ratio:16/9;object-fit:contain;background:#0b3d91;padding:6px"><p><b>📱 QR 접속 화면</b>아이들이 폰으로 찍고 들어오는 화면</p></div>
       <div class="card w on" data-w="sea"><div class="ph">🌊</div><p><b>제주 바다</b>참고래·산갈치·해녀·뗏목</p></div>
       <div class="card w" data-w="village"><div class="ph">🏝️</div><p><b>옛 포구 마을</b>초가·돌담·돛단배</p></div>
       <div class="card w" data-w="night"><div class="ph">🌙</div><p><b>마법의 밤</b>별자리·반딧불이, 규칙 없음</p></div>
@@ -78,7 +76,6 @@
       <button id="bAuto">자동 놀이: 켬</button>
       <button id="bDemo">예시 넣기</button>
       <button id="bSound">프로젝터 소리 켜기</button>
-      <button class="blue" id="bQr">QR 보이기 / 숨기기</button>
     </div>
     <h2 style="margin-top:14px">정리</h2>
     <div class="row">
@@ -123,6 +120,8 @@ function save() { localStorage.setItem('teacherState', JSON.stringify(state)); }
 /* 공간 */
 function selectWorld(name) {
   document.querySelectorAll('.card').forEach(function (c) { c.classList.toggle('on', c.dataset.w === name); });
+  if (name === 'qr') { StageBus.send({ type: 'qr', on: true }); return; }            // QR 화면: 무대 위에 덮어서 보여 준다
+  StageBus.send({ type: 'qr', on: false });
   StageBus.send({ type: 'world', name: name });
 }
 document.querySelectorAll('#worlds .card').forEach(function (c) { c.onclick = function () { selectWorld(c.dataset.w); }; });
@@ -138,7 +137,6 @@ bAuto.onclick = function () { state.auto = !state.auto; save(); showAuto(); Stag
 showAuto();
 document.getElementById('bDemo').onclick  = function () { StageBus.send({ type: 'demo' }); };
 document.getElementById('bSound').onclick = function () { StageBus.send({ type: 'sound', on: true }); };
-document.getElementById('bQr').onclick = function () { StageBus.send({ type: 'qr', toggle: true }); };
 document.getElementById('bClear').onclick = function () { if (confirm('프로젝터 무대의 그림을 모두 내립니다. 아이들 보관함은 남습니다.')) StageBus.send({ type: 'clear' }); };
 document.getElementById('bWipe').onclick  = function () {
   var t = prompt('수업을 마치고 초기화합니다. 오늘 올라온 그림·배경이 프로젝터, 강사 화면, 아이 보관함에서 모두 지워집니다.\n지우려면 "지움" 이라고 입력하세요.');
