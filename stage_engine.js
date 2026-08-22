@@ -753,18 +753,25 @@ var TRASH_DRAW = {
   can:    function (c, s) { c.fillStyle = '#e63946'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.beginPath(); c.roundRect(-s*0.28, -s*0.45, s*0.56, s*0.9, s*0.1); c.fill(); c.stroke(); c.fillStyle = '#ddd'; c.fillRect(-s*0.28, -s*0.45, s*0.56, s*0.12); c.fillRect(-s*0.28, s*0.33, s*0.56, s*0.12); },
   tire:   function (c, s) { c.strokeStyle = '#222'; c.lineWidth = s*0.3; c.beginPath(); c.arc(0, 0, s*0.4, 0, 6.3); c.stroke(); c.strokeStyle = '#555'; c.lineWidth = s*0.06; c.beginPath(); c.arc(0, 0, s*0.4, 0, 6.3); c.stroke(); },
   boot:   function (c, s) { c.fillStyle = '#6b4a2b'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.beginPath(); c.moveTo(-s*0.2, -s*0.5); c.lineTo(s*0.15, -s*0.5); c.lineTo(s*0.15, s*0.1); c.lineTo(s*0.5, s*0.3); c.lineTo(s*0.5, s*0.5); c.lineTo(-s*0.2, s*0.5); c.closePath(); c.fill(); c.stroke(); },
+  glass:  function (c, s) { c.fillStyle = '#2a9d8f'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.06; c.beginPath(); c.moveTo(-s*0.1, -s*0.5); c.lineTo(s*0.1, -s*0.5); c.lineTo(s*0.1, -s*0.25); c.quadraticCurveTo(s*0.28, -s*0.15, s*0.25, s*0.05); c.lineTo(s*0.25, s*0.5); c.lineTo(-s*0.25, s*0.5); c.lineTo(-s*0.25, s*0.05); c.quadraticCurveTo(-s*0.28, -s*0.15, -s*0.1, -s*0.25); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#f1faee'; c.fillRect(-s*0.18, s*0.08, s*0.36, s*0.22); },
+  paper:  function (c, s) { c.fillStyle = '#f8f4e3'; c.strokeStyle = '#8a8a7a'; c.lineWidth = s*0.05; c.beginPath(); c.moveTo(-s*0.45, -s*0.2); c.lineTo(-s*0.2, -s*0.5); c.lineTo(s*0.15, -s*0.35); c.lineTo(s*0.45, -s*0.1); c.lineTo(s*0.3, s*0.3); c.lineTo(0, s*0.5); c.lineTo(-s*0.35, s*0.25); c.closePath(); c.fill(); c.stroke(); c.beginPath(); c.moveTo(-s*0.2, -s*0.5); c.lineTo(-s*0.05, -s*0.1); c.lineTo(s*0.3, s*0.3); c.stroke(); c.beginPath(); c.moveTo(-s*0.45, -s*0.2); c.lineTo(-s*0.05, -s*0.1); c.stroke(); },
   wrapper:function (c, s) { c.fillStyle = '#ffd166'; c.strokeStyle = '#1b2533'; c.lineWidth = s*0.05; c.beginPath(); c.moveTo(-s*0.5, -s*0.2); c.lineTo(-s*0.3, -s*0.3); c.lineTo(s*0.3, -s*0.25); c.lineTo(s*0.5, -s*0.1); c.lineTo(s*0.45, s*0.3); c.lineTo(-s*0.45, s*0.25); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#e63946'; c.fillRect(-s*0.25, -s*0.12, s*0.5, s*0.2); }
 };
+/* 분리수거 종류: 쓰레기 → 수거함 */
+var TRASH_CAT = { bottle: 'plastic', bag: 'plastic', cup: 'paper', paper: 'paper', can: 'metal', tire: 'general', boot: 'general', wrapper: 'general', glass: 'glass' };
+var BIN_DEF = [ { cat: 'general', name: '일반', color: '#6c757d' }, { cat: 'paper', name: '종이', color: '#4f86c6' }, { cat: 'plastic', name: '플라스틱', color: '#2ec4b6' }, { cat: 'glass', name: '병', color: '#7fb069' }, { cat: 'metal', name: '금속', color: '#e9c46a' } ];
+var CAT_KO = { general: '일반', paper: '종이', plastic: '플라스틱', glass: '병', metal: '금속' };
 function missionStart(type) {
   if (M) missionStop(true);
   var b = cur().band, n = 22, trash = [];
   for (var i = 0; i < n; i++) {
     var float = type === 'sea' && Math.random() < 0.55;
-    var kind = type === 'sea' ? (float ? ['bottle', 'bag', 'cup'][i % 3] : ['can', 'tire', 'boot', 'bottle'][i % 4]) : ['bottle', 'can', 'bag', 'cup', 'wrapper'][i % 5];
+    var kind = type === 'sea' ? (float ? ['bottle', 'bag', 'cup'][i % 3] : ['can', 'tire', 'boot', 'bottle'][i % 4]) : ['bottle', 'can', 'bag', 'cup', 'wrapper', 'glass', 'paper', 'boot'][i % 8];
     trash.push({ id: 't' + i, kind: kind, float: float, x: W*(0.06 + Math.random()*0.88), y: float ? H*(b.swim[0] + 0.05 + Math.random()*(b.swim[1] - b.swim[0] - 0.1)) : H*b.bottom - 14 - Math.random()*10,
                  s: 26 + Math.random()*14, ph: Math.random()*6, vx: (Math.random() - 0.5)*12, held: null, vy: 0, rot: (Math.random() - 0.5)*0.6 });
   }
   M = { type: type, trash: trash, score: {}, bin: { x: W*0.5, y: type === 'sea' ? H*b.surface : H*b.bottom, dir: 1, w: 190 }, ended: false, start: performance.now() };
+  if (type === 'forest') M.bins = BIN_DEF.map(function (d, i) { return { cat: d.cat, name: d.name, color: d.color, x: W*(0.14 + i*0.18), y: H*b.bottom, w: 120 }; });   // 숲: 분리수거함 5개
   say(type === 'sea' ? '🧹 바다 청소 시작!' : '🌲 숲 청소 시작!', W/2, H*0.2, '#ffd166'); Sound.play('cheer');
 }
 function missionStop(silent) {
@@ -786,8 +793,15 @@ function grab(id) {
 function drop(id) {
   var sp = findSprite(id); if (!sp || !sp.holding) return false;
   var t = sp.holding; sp.holding = null; t.held = null;
-  var near = M && !M.ended && Math.abs(sp.x - M.bin.x) < M.bin.w*0.7 && Math.abs(sp.y - M.bin.y) < H*0.22;
-  if (near) { M.trash = M.trash.filter(function (x) { return x !== t; }); M.score[id] = (M.score[id] || 0) + 1; say('+1', M.bin.x, M.bin.y - 80, '#7CFC00'); spawn('star', M.bin.x, M.bin.y - 40, 8); Sound.play('friend');
+  var near = false;
+  if (M && !M.ended && M.bins) {                                                  // 분리수거: 가장 가까운 수거함이 맞는 종류여야 한다
+    var bin = null, bd = 1e9; M.bins.forEach(function (bb) { var d = Math.abs(sp.x - bb.x); if (d < bd) { bd = d; bin = bb; } });
+    if (bin && bd < bin.w*0.6 && Math.abs(sp.y - bin.y) < H*0.22) {
+      if (bin.cat === TRASH_CAT[t.kind]) near = true;
+      else { sp.chat = { text: '여기 아니야! ' + CAT_KO[TRASH_CAT[t.kind]] + ' 쓰레기야', at: performance.now(), until: performance.now() + 2500 }; t.x = sp.x; t.y = sp.y; t.vy = 0; Sound.play('thud'); return true; }
+    }
+  } else near = M && !M.ended && Math.abs(sp.x - M.bin.x) < M.bin.w*0.7 && Math.abs(sp.y - M.bin.y) < H*0.22;
+  if (near) { M.trash = M.trash.filter(function (x) { return x !== t; }); M.score[id] = (M.score[id] || 0) + 1; say('+1', sp.x, sp.y - 80, '#7CFC00'); spawn('star', sp.x, sp.y - 40, 8); Sound.play('friend');
     if (!M.trash.length) missionStop(); return true; }
   t.x = sp.x; t.y = sp.y; t.vy = 0; sp.chat = { text: '앗, 떨어졌다', at: performance.now(), until: performance.now() + 1500 }; return true;
 }
@@ -812,10 +826,17 @@ function drawMission(t) {
     g.fillStyle = '#2ec4b6'; g.fillRect(30, -30, 50, 30); g.strokeStyle = '#1b2533'; g.lineWidth = 3; g.strokeRect(30, -30, 50, 30);
     g.fillStyle = '#fff'; g.font = 'bold 16px sans-serif'; g.textAlign = 'center'; g.fillText('♻', 55, -8);
     g.fillText('수거선 — 여기에 놓기', 0, 60);
-  } else {                                                                 // 수거함
-    g.fillStyle = '#2ec4b6'; g.beginPath(); g.roundRect(-60, -90, 120, 90, 10); g.fill(); g.strokeStyle = '#1b2533'; g.lineWidth = 4; g.strokeRect(-60, -90, 120, 90);
-    g.fillStyle = '#1b2533'; g.fillRect(-66, -100, 132, 14);
-    g.fillStyle = '#fff'; g.font = 'bold 34px sans-serif'; g.textAlign = 'center'; g.fillText('♻', 0, -28); g.font = 'bold 16px sans-serif'; g.fillText('수거함 — 여기에 놓기', 0, 26);
+  } else if (M.bins) {                                                     // 분리수거함 5개
+    g.restore();
+    M.bins.forEach(function (bb) {
+      g.save(); g.translate(bb.x, bb.y);
+      g.fillStyle = bb.color; g.beginPath(); g.roundRect(-50, -84, 100, 84, 10); g.fill(); g.strokeStyle = '#1b2533'; g.lineWidth = 4; g.strokeRect(-50, -84, 100, 84);
+      g.fillStyle = '#1b2533'; g.fillRect(-56, -94, 112, 12);
+      g.fillStyle = '#fff'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center'; g.fillText('♻', 0, -58);
+      g.font = 'bold 20px sans-serif'; g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.5)'; g.strokeText(bb.name, 0, -30); g.fillText(bb.name, 0, -30);
+      g.restore();
+    });
+    g.save();
   }
   g.restore();
   M.trash.forEach(function (tr) { g.save(); g.translate(tr.x, tr.y); g.rotate(tr.rot + (tr.float ? Math.sin(t + tr.ph)*0.2 : 0)); (TRASH_DRAW[tr.kind] || TRASH_DRAW.can)(g, tr.s); g.restore(); });
@@ -825,7 +846,7 @@ function drawMission(t) {
   var bw = 300, bh = 34 + ids.length*28 + 26; g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.roundRect(14, 14, bw, bh, 12); g.fill();
   g.fillStyle = '#ffd166'; g.fillText((M.type === 'sea' ? '🧹 바다 청소' : '🌲 숲 청소') + '  남은 쓰레기 ' + M.trash.length, 28, 40);
   g.fillStyle = '#fff'; ids.forEach(function (id, i) { var sp = findSprite(id); g.fillText((i + 1) + '. ' + (sp ? (sp.nick || sp.seat + '번') : '?') + '  ' + M.score[id] + '개', 28, 70 + i*28); });
-  if (!ids.length) { g.fillStyle = '#ddd'; g.font = '16px sans-serif'; g.fillText('쓰레기 옆에서 [줍기] → 수거 장소에서 [놓기]', 28, 70); }
+  if (!ids.length) { g.fillStyle = '#ddd'; g.font = '16px sans-serif'; g.fillText(M.bins ? '[줍기] → 종류에 맞는 수거함에서 [놓기]' : '쓰레기 옆에서 [줍기] → 수거 장소에서 [놓기]', 28, 70); }
   g.restore();
 }
 
