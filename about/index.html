@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>스케치 무대 — 소개</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="아이들이 그린 그림이 프로젝터 무대에서 살아 움직이는 어린이 AI 수업 도구. 계정 없이, 자리 번호와 별명만으로.">
+<style>
+  :root { --ink:#1b2533; --muted:#5b6b7c; --line:#e6ebf2; --bg:#fffaf0; --o:#ff9f1c; --b:#0b3d91; --t:#2ec4b6; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; line-height:1.65; }
+  header { background:linear-gradient(135deg, #0b3d91, #1b7fc4); color:#fff; padding:56px 20px 44px; }
+  .wrap { max-width:960px; margin:0 auto; padding:0 20px; }
+  header h1 { font-size:40px; margin:0 0 8px; letter-spacing:-0.5px; }
+  header p.lead { font-size:20px; margin:0 0 18px; opacity:.95; max-width:720px; }
+  header .meta { font-size:14px; opacity:.8; }
+  .btns { margin-top:22px; display:flex; gap:10px; flex-wrap:wrap; }
+  .btn { display:inline-block; padding:11px 16px; border-radius:10px; text-decoration:none; font-weight:bold; font-size:15px; }
+  .btn.w { background:#fff; color:var(--b); } .btn.g { background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.5); }
+  section { padding:44px 0; border-bottom:1px solid var(--line); }
+  h2 { font-size:26px; margin:0 0 6px; } h2 + p.sub { margin:0 0 22px; color:var(--muted); }
+  h3 { font-size:18px; margin:22px 0 8px; }
+  .grid { display:grid; gap:14px; } .g2 { grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); } .g3 { grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .card b.t { display:block; font-size:16px; margin-bottom:6px; } .card p { margin:0; font-size:15px; color:#334; }
+  .step { display:flex; gap:14px; align-items:flex-start; background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  .step .n { flex:none; width:34px; height:34px; border-radius:50%; background:var(--o); color:#fff; font-weight:bold; display:flex; align-items:center; justify-content:center; }
+  .step p { margin:0; font-size:15px; }
+  table { width:100%; border-collapse:collapse; background:#fff; font-size:14.5px; }
+  th, td { border:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:top; }
+  th { background:#f3f6fa; }
+  .demo { background:#03132b; border-radius:14px; overflow:hidden; aspect-ratio:16/9; position:relative; }
+  .demo canvas { width:100%; height:100%; display:block; }
+  .demoBar { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .demoBar button { border:0; border-radius:8px; padding:9px 12px; font-size:14px; cursor:pointer; background:#e6ebf2; }
+  .demoBar button.w { background:#0e8a5f; color:#fff; } .demoBar button.w.on { background:#f2b705; color:#222; } .demoBar button.a { background:#c2410c; color:#fff; }
+  .guides { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:8px; }
+  .guides div { background:#fff; border:1px solid var(--line); border-radius:10px; text-align:center; font-size:12px; padding:6px 4px; }
+  .guides canvas { width:100%; aspect-ratio:1; display:block; }
+  .arch { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; overflow-x:auto; }
+  .arch svg { width:100%; max-width:900px; height:auto; display:block; margin:0 auto; }
+  .note { background:#fff6e0; border-left:5px solid var(--o); padding:12px 14px; border-radius:8px; font-size:14.5px; }
+  footer { padding:36px 20px; color:var(--muted); font-size:14px; }
+  a { color:var(--b); }
+  @media (max-width:600px){ header h1{font-size:30px;} header p.lead{font-size:17px;} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>스케치 무대</h1>
+    <p class="lead">아이들이 그린 그림이 프로젝터 위 무대로 들어가 헤엄치고, 걷고, 날고, 친구와 씨름하고, 쓰레기를 줍는 어린이 AI 수업 도구입니다. 아이는 계정 없이 자리 번호와 별명만으로 참여합니다.</p>
+    <div class="meta">제주그래퍼 · 제주민속자연사박물관 어린이 AI 교육 2탄 · 2026년 8월</div>
+    <div class="btns">
+      <a class="btn w" href="#demo">▶ 직접 움직여 보기</a>
+      <a class="btn g" href="#flow">수업 흐름</a>
+      <a class="btn g" href="#safety">개인정보·안전</a>
+    </div>
+  </div>
+</header>
+
+<section id="what"><div class="wrap">
+  <h2>무엇인가</h2>
+  <p class="sub">미디어아트 전시장의 "그림이 벽에서 살아 움직이는" 형식을 교실로 가져왔습니다.</p>
+  <div class="grid g3">
+    <div class="card"><b class="t">🎨 아이가 그리고</b><p>폰·태블릿 그림판에서 도안(참고래·산갈치·게·해녀·뗏목·새·자동차·잠수함 …)을 따라 그리거나 색칠합니다. 사진을 찍어 대상만 오려 쓰거나, 사진을 흐리게 깔고 따라 그릴 수도 있습니다.</p></div>
+    <div class="card"><b class="t">✨ AI가 다듬고</b><p>아이의 그림과 한 줄 설명을 Gemini에 보내 캐릭터로 다듬습니다. 아이가 쓴 설명은 무대 규칙보다 우선합니다 — "물속을 날아다니는 자동차"라고 쓰면 정말 물속을 날아다닙니다.</p></div>
+    <div class="card"><b class="t">🎬 무대에서 살아 움직입니다</b><p>제주 바다·옛 포구 마을·제주 숲·마법의 밤. 도안을 따라 그린 그림은 다리·날개·꼬리가 따로 움직입니다. 아이는 폰으로 자기 캐릭터를 조종하고 말풍선을 띄웁니다.</p></div>
+  </div>
+</div></section>
+
+<section id="demo"><div class="wrap">
+  <h2>직접 움직여 보기</h2>
+  <p class="sub">실제 프로젝터에서 도는 무대 엔진입니다. 예시를 넣고 공간을 바꿔 보세요. (소리는 버튼을 누르면 켜집니다)</p>
+  <div class="demo"><canvas id="c"></canvas></div>
+  <div class="demoBar">
+    <button class="w on" data-w="sea">제주 바다</button><button class="w" data-w="village">옛 포구 마을</button><button class="w" data-w="forest">제주 숲</button><button class="w" data-w="night">마법의 밤</button>
+    <button id="dDemo">예시 넣기</button><button class="a" id="dFriend">친구 만들기</button><button class="a" id="dSsireum">씨름 대회</button><button class="a" id="dDance">춤 시간</button><button id="dClean">🧹 청소 미션</button><button id="dSound">🔊 소리 켜기</button><button id="dClear">비우기</button>
+  </div>
+  <p class="note" style="margin-top:12px">같은 그림이 공간마다 다르게 움직입니다. 바다에서 새는 떠올라 수면에 둥둥 뜨고 자동차는 가라앉습니다. 마을로 바꾸면 새는 날고 자동차는 땅을 달리며 물고기는 물속에 숨어 물결만 보입니다. 고래는 뛰어오르고 상어는 지느러미만 내밉니다.</p>
+</div></section>
+
+<section id="flow"><div class="wrap">
+  <h2>수업 흐름</h2>
+  <p class="sub">강사가 단계를 하나씩 열어 줍니다. 아이 화면에는 열린 기능만 나타납니다.</p>
+  <div class="grid" style="gap:10px">
+    <div class="step"><div class="n">1</div><p><b>입장</b> — 프로젝터에 QR이 뜹니다. 아이는 폰으로 찍고 자리 번호와 별명(추천 별명 중 고르기)을 정합니다. 이름·연락처는 받지 않습니다.</p></div>
+    <div class="step"><div class="n">2</div><p><b>그리기</b> — 도안을 고르고 손가락으로 그립니다. 두 손가락으로 확대, 도안은 끄고 켤 수 있습니다. 그림이 어느 쪽을 보는지(왼쪽·오른쪽·정면)를 정하면 무대에서 그쪽이 앞이 됩니다.</p></div>
+    <div class="step"><div class="n">3</div><p><b>설명 쓰기</b> — 자유롭게 쓰거나 추천 태그를 눌러 조합합니다("밤바다에서 · 별빛을 받으며 · 뛰어오르며"). 이 설명이 AI 프롬프트와 무대 규칙 양쪽에 쓰입니다.</p></div>
+    <div class="step"><div class="n">4</div><p><b>AI로 바꾸기 또는 그대로 쓰기</b> — 강사가 열어 준 쪽으로 완성합니다. AI 결과는 흰 배경을 오려내 무대용 투명 그림이 됩니다.</p></div>
+    <div class="step"><div class="n">5</div><p><b>무대로 보내기</b> — 프로젝터에 "7번 번개상어" 꼬리표와 함께 등장. 아이 화면은 조종판(화살표·줍기·말하기·친구하기·씨름하기)으로 바뀝니다.</p></div>
+    <div class="step"><div class="n">6</div><p><b>배경 만들기(후반)</b> — 아이가 직접 장소를 그리고 물 표면선·땅선을 손가락으로 정합니다. 내 무대에서 먼저 실행해 보고 선생님께 보내면, 강사가 골라 프로젝터에 올립니다. 다른 아이들도 그 배경에 그림을 넣습니다.</p></div>
+    <div class="step"><div class="n">7</div><p><b>놀이와 미션</b> — 친구 만들기, 씨름(연타 대결), 춤 시간, 바다·숲 청소(분리수거), 마법의 밤 작품 전시. 수업이 끝나면 강사가 한 번에 초기화합니다.</p></div>
+  </div>
+</div></section>
+
+<section id="stage"><div class="wrap">
+  <h2>무대의 규칙</h2>
+  <p class="sub">그림은 종류(카테고리)로 나뉘고, 공간마다 다르게 움직입니다. 아이가 쓴 설명이 있으면 설명이 우선합니다.</p>
+  <table>
+    <tr><th>그림</th><th>제주 바다</th><th>옛 포구 마을</th><th>제주 숲</th><th>마법의 밤</th></tr>
+    <tr><td>물고기·오징어·잠수함</td><td>헤엄</td><td>물속 — 물결만 보임</td><td>땅에서 퍼덕임</td><td rowspan="7">규칙 없음<br>모두 함께 둥실</td></tr>
+    <tr><td>고래·돌고래 / 상어</td><td>헤엄</td><td>뛰어오름 / 지느러미만</td><td>땅에서 퍼덕임</td></tr>
+    <tr><td>게·문어·조개</td><td>바닥을 김 (조개는 여닫으며 통통)</td><td>모래밭</td><td>땅</td></tr>
+    <tr><td>새</td><td>떠올라 수면에 둥둥</td><td>하늘을 낢</td><td>하늘을 낢</td></tr>
+    <tr><td>사람·해녀</td><td>헤엄 (해녀는 숨 쉬고 잠수)</td><td>걷기 / 헤엄 / 배 타기</td><td>걷기</td></tr>
+    <tr><td>배·뗏목</td><td>수면</td><td>수면 띠 안에서 앞뒤로도</td><td>땅</td></tr>
+    <tr><td>자동차·비행기·무거운 것</td><td>가라앉아 바닥에 누움</td><td>땅 / 비행기는 하늘</td><td>땅 / 하늘</td></tr>
+  </table>
+  <h3>도안을 따라 그리면 부위가 따로 움직입니다</h3>
+  <p>도안마다 다리·날개·꼬리의 위치와 관절이 정해져 있어, 아이 그림에서 그 부분을 잘라 관절 중심으로 돌립니다. 게는 다리 8개와 집게, 새는 날개 위아래, 사람·해녀는 팔다리(물에서는 몸을 눕혀 수영), 참고래는 꼬리와 가슴지느러미, 산갈치는 긴 몸이 물결, 자동차는 바퀴, 잠수함은 프로펠러.</p>
+  <div class="guides" id="guides"></div>
+  <h3>별자리 도안</h3>
+  <p>마법의 밤 전시용. 북두칠성·카시오페이아·오리온·백조자리와, 마법의 밤 하늘에 떠 있는 박물관 별자리(참고래·뗏목·게). 번호대로 별을 찍으면 광채와 선으로 이어집니다.</p>
+  <div class="guides" id="constel"></div>
+</div></section>
+
+<section id="play"><div class="wrap">
+  <h2>함께 놀기</h2>
+  <div class="grid g2">
+    <div class="card"><b class="t">🕹️ 조종과 말풍선</b><p>아이 폰의 화살표로 자기 캐릭터를 움직이고(0.1~0.3초 반응), 말을 보내면 캐릭터를 따라다니는 말풍선이 몇 초 떠 있다 사라집니다. 규칙에 묶인 그림은 "난 못 움직여…"라고만 말합니다.</p></div>
+    <div class="card"><b class="t">🤝 친구하기 · 🤼 씨름</b><p>무대의 캐릭터 목록에서 고릅니다. 씨름은 상대가 수락하면 3초 카운트다운 뒤 8초 연타 — 같은 방향은 1점, 방향을 바꾸면 2점. 점수 차만큼 밀리다 높은 쪽이 던집니다. 강사가 넣은 예시 캐릭터는 수락 없이 바로 겨루고, 아이 말에 답하고 반응합니다.</p></div>
+    <div class="card"><b class="t">🧹 청소 미션</b><p>바다에 떠다니는 페트병·비닐과 바닥의 캔·타이어를 주워 수거선에 놓기. 숲에서는 일반·종이·플라스틱·병·금속 수거함에 종류를 맞춰 넣어야 점수 — 틀리면 "여기 아니야! 금속 쓰레기야". 다 치우면 1·2·3등 발표.</p></div>
+    <div class="card"><b class="t">🖼️ 마법의 밤 전시</b><p>밤 배경에 그림이나 별자리를 그려 보내면, 내 캐릭터로 작품을 들어 옮기고 돌려서 원하는 자리에 전시합니다. "○○의 작품" 이름표가 붙습니다.</p></div>
+  </div>
+</div></section>
+
+<section id="teacher"><div class="wrap">
+  <h2>강사가 제어하는 것</h2>
+  <div class="grid g2">
+    <div class="card"><b class="t">허용 스위치 6개</b><p>그리기 열기 · 사진 올리기 · AI로 바꾸기 · 그대로 쓰기 · 배경 만들기 · 친구 배경 보기. 켜는 순서대로 수업 단계가 열립니다.</p></div>
+    <div class="card"><b class="t">무대와 장면</b><p>QR 접속 화면 · 공간 4개 + 아이가 만든 배경(심사 후 올리기) · 친구 만들기 · 씨름 대회 · 춤 시간 · 청소 미션 · 예시 넣기 · 소리.</p></div>
+    <div class="card"><b class="t">올라온 그림 관리</b><p>아이들이 보낸 그림을 한눈에 보고, 올리면 안 되는 그림은 삭제(프로젝터와 아이 보관함에서 함께 사라짐).</p></div>
+    <div class="card"><b class="t">수업 끝 초기화</b><p>"지움"이라고 입력하면 오늘 것이 모두 지워집니다. 매일 다른 반을 같은 시스템으로 운영합니다.</p></div>
+    <div class="card"><b class="t">준비물</b><p>프로젝터 연결 PC 1대, 강사 노트북, 아이 1인 1기기(폰·태블릿), 교실 와이파이. 설치할 것은 없고 모두 브라우저에서 동작합니다.</p></div>
+  </div>
+</div></section>
+
+
+
+<section id="safety"><div class="wrap">
+  <h2>개인정보·안전</h2>
+  <div class="grid g2">
+    <div class="card"><b class="t">수집하지 않는 것</b><p>이름·연락처·학교·사진 속 얼굴. 아이는 자리 번호와 스스로 정한 별명만 씁니다. 사진은 전시물·사물을 찍도록 안내합니다.</p></div>
+    <div class="card"><b class="t">강사 통제</b><p>모든 기능은 강사가 열어야 아이 화면에 나타납니다. 올라온 그림은 강사가 보고 삭제할 수 있고, 아이 배경은 강사 심사 후에만 프로젝터에 오릅니다. 채팅은 40자, 말풍선은 몇 초 뒤 사라집니다.</p></div>
+    <div class="card"><b class="t">보관과 삭제</b><p>그림은 강사 계정 Drive에만 저장되고, 수업 끝 초기화로 삭제됩니다. 실시간 DB에는 위치·조종 신호·짧은 채팅만 잠깐 머뭅니다.</p></div>
+    <div class="card"><b class="t">이전 강의에서 이어진 것</b><p>2026년 7~8월 제주민속자연사박물관 초등 3~6학년 AI 교육(「우리 집 추억! 박물관 추억!」)의 전시물·문장 만들기 방식과 계정 없는 구조를 그대로 이어받았습니다.</p></div>
+  </div>
+</div></section>
+
+<section id="contact"><div class="wrap">
+  <h2>협업·문의</h2>
+  <p>박물관·도서관·학교·문화시설에서 운영하거나, 지역의 전시물·생물·이야기로 도안과 공간을 바꿔 만들 수 있습니다. 도안·배경·미션은 모두 데이터로 되어 있어 주제를 바꾸는 데 큰 수정이 필요하지 않습니다.</p>
+  <p><b>제주그래퍼 전현석</b> · <a href="https://jejugrapher.com" target="_blank" rel="noopener">jejugrapher.com</a> · <a href="mailto:whipia@gmail.com">whipia@gmail.com</a></p>
+</div></section>
+
+<footer><div class="wrap">스케치 무대 · 이 페이지의 무대 데모는 실제 수업용 엔진과 같은 코드로 동작합니다. 실제 수업에서는 아이 화면·강사 화면·프로젝터 화면이 서버를 통해 연결됩니다.</div></footer>
+
+<script>(function(){var v=Date.now();['stage_engine.js','stage_demos.js','stage_guides.js'].forEach(function(f){document.write('<script src="../'+f+'?v='+v+'"><\/script>');});})();</script>
+<script>
+var E = new StageEngine({ canvas: document.getElementById('c'), soundBase: '../assets/sound/' });
+var cols = ['#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#ffb703', '#cdb4db', '#90be6d'];
+var KO = { whale: '참고래', oarfish: '산갈치', crab: '게', clam: '조개', squid: '오징어', octopus: '문어', haenyeo: '해녀', person: '사람', bird: '새', raft: '뗏목', sailboat: '돛단배', car: '자동차', airplane: '비행기', paperplane: '종이비행기', submarine: '잠수함' };
+var cats = { whale: 'whale', oarfish: 'fish', crab: 'crawler', clam: 'clam', squid: 'fish', octopus: 'crawler', haenyeo: 'person', person: 'person', bird: 'bird', raft: 'boat', sailboat: 'boat', car: 'vehicle', airplane: 'aircraft', paperplane: 'light', submarine: 'sub' };
+function addAll() { StageGuides.names.forEach(function (n, i) { var s = StageGuides.sample(n, cols[i % cols.length]); if (s) E.add(s.canvas, { id: 'demo_' + n, seat: (i % 15) + 1, nick: KO[n] || n, cat: cats[n] || 'fish', rig: s.rig, rigBox: s.rigBox, demo: true }); }); }
+document.querySelectorAll('.demoBar [data-w]').forEach(function (b) { b.onclick = function () { document.querySelectorAll('.demoBar [data-w]').forEach(function (x) { x.classList.toggle('on', x === b); }); E.setWorld(b.dataset.w); }; });
+document.getElementById('dDemo').onclick = addAll;
+document.getElementById('dFriend').onclick = E.friends; document.getElementById('dSsireum').onclick = E.tournament; document.getElementById('dDance').onclick = E.dance;
+document.getElementById('dClean').onclick = function () { var w = E.world(); if (w === 'forest') E.missionStart('forest'); else { if (w !== 'sea') { E.setWorld('sea'); document.querySelectorAll('.demoBar [data-w]').forEach(function (x) { x.classList.toggle('on', x.dataset.w === 'sea'); }); } setTimeout(function () { E.missionStart('sea'); }, w === 'sea' ? 0 : 1600); } };
+document.getElementById('dSound').onclick = function () { E.sound.enable(); this.textContent = '🔊 소리 켜짐'; };
+document.getElementById('dClear').onclick = function () { E.clear(); E.missionStop(); };
+setTimeout(addAll, 800);
+/* 도안 미리보기 */
+var gbox = document.getElementById('guides');
+StageGuides.names.forEach(function (n) { var d = document.createElement('div'), cv = document.createElement('canvas'); cv.width = 200; cv.height = 200; StageGuides.draw(n, cv.getContext('2d'), 200, { color: '#333', width: 4 }); d.appendChild(cv); d.appendChild(document.createTextNode(KO[n] || n)); gbox.appendChild(d); });
+var cbox = document.getElementById('constel');
+Object.keys(StageGuides.constellations).forEach(function (k) { var d = document.createElement('div'), cv = document.createElement('canvas'); cv.width = 200; cv.height = 200; var c = cv.getContext('2d'); c.fillStyle = '#0b0f24'; c.fillRect(0, 0, 200, 200); StageGuides.drawConstellation(k, c, 200, { alpha: 0.95, color: '#ffe08a' }); d.appendChild(cv); d.appendChild(document.createTextNode(StageGuides.constellations[k].name)); cbox.appendChild(d); });
+</script>
+</body>
+</html>
