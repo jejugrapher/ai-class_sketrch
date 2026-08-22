@@ -124,7 +124,7 @@ StageRT.init('stage').then(function (mode) {
     if (m.status === 'go' && !running[key] && E.sceneName() !== 'duel') {
       running[key] = true;
       var started = E.duel(m.a, m.b, { duration: 8, onEnd: function (winner, sa, sb) { StageRT.setMatch(key, { status: 'done', winner: winner, sa: sa, sb: sb }); } });
-      if (!started) StageRT.setMatch(key, { status: 'cancel' });
+      if (!started) { running[key] = false; }                                       // 내 화면에 둘이 없으면 건드리지 않는다 (다른 프로젝터가 맡을 수 있다)
     }
     if (m.status === 'go' && m.score) E.duelScores(m.score[m.a] || 0, m.score[m.b] || 0);
   });
