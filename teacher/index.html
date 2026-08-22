@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="../gate.js"></script>
+<script>/* JS 는 항상 새로 받는다 (GitHub Pages 10분 캐시 우회) */
+(function(){var v=Date.now();['gate.js','stage_bus.js','stage_server.js'].forEach(function(f){document.write('<script src="../'+f+'?v='+v+'"><\/script>');});})();</script>
 <title>Sketch Stage — Teacher</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -117,8 +118,6 @@
   </section>
 </main>
 
-<script src="../stage_bus.js"></script>
-<script src="../stage_server.js"></script>
 <script>
 var state = JSON.parse(localStorage.getItem('teacherState') || '{}');
 state.allow = state.allow || { draw: false, photo: false, ai: false, raw: false, world: false, gallery: false };

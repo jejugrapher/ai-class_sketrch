@@ -61,7 +61,7 @@ var WORLDS = {
   sea: {
     name: '제주 바다',
     band: { surface: 0.07, swim: [0.15, 0.78], bottom: 0.87 },
-    rule: { fish: 'swim', whale: 'swim', shark: 'swim', sub: 'swim', clam: 'clam', crawler: 'crawl', bird: 'paddle', person: 'swim', animal: 'paddle',
+    rule: { art: 'paddle', fish: 'swim', whale: 'swim', shark: 'swim', sub: 'swim', clam: 'clam', crawler: 'crawl', bird: 'paddle', person: 'swim', animal: 'paddle',
             boat: 'float', vehicle: 'sink', aircraft: 'sink', light: 'paddle', heavy: 'sink' },
     draw: drawSea
   },
@@ -69,14 +69,14 @@ var WORLDS = {
     name: '옛 포구 마을',
     band: { sky: [0.08, 0.4], surface: 0.525, swim: [0.56, 0.72], bottom: 0.87, plane: [0.54, 0.68] },   // plane: 비스듬히 본 수면 띠 → 배가 위아래로도 다닌다
     /* 마을: 일반 물고기는 물속이라 보이지 않고 물결만. 고래는 뛰어오르고, 상어는 지느러미만 보인다 */
-    rule: { fish: 'hidden', whale: 'breach', shark: 'fin', sub: 'hidden', clam: 'hidden', crawler: 'crawl', bird: 'fly', person: 'person', animal: 'walk',
+    rule: { art: 'fly', fish: 'hidden', whale: 'breach', shark: 'fin', sub: 'hidden', clam: 'hidden', crawler: 'crawl', bird: 'fly', person: 'person', animal: 'walk',
             boat: 'float', vehicle: 'walk', aircraft: 'fly', light: 'fly', heavy: 'walk' },
     draw: drawVillage
   },
   forest: {
     name: '제주 숲',
     band: { sky: [0.06, 0.42], bottom: 0.86, swim: [0.6, 0.8], surface: 0.6 },
-    rule: { fish: 'crawl', whale: 'crawl', shark: 'crawl', sub: 'crawl', clam: 'crawl', crawler: 'crawl', bird: 'fly', person: 'walk', animal: 'walk',
+    rule: { art: 'fly', fish: 'crawl', whale: 'crawl', shark: 'crawl', sub: 'crawl', clam: 'crawl', crawler: 'crawl', bird: 'fly', person: 'walk', animal: 'walk',
             boat: 'walk', vehicle: 'walk', aircraft: 'fly', light: 'fly', heavy: 'walk' },
     draw: drawForest
   },
@@ -543,6 +543,13 @@ function drawSprite(sp, t) {
   }
   g.restore();
   if (sp.mood) { g.save(); g.font = '28px sans-serif'; g.textAlign = 'center'; g.fillText(sp.mood, sp.x, spriteTop(sp) - 14); g.restore(); }
+  if (sp.art && (sp.fixed || sp.heldBy)) {                                 // 작품: 빛나는 테두리 + 이름표
+    var aw = sp.w*sp.depth, ah = sp.h*sp.depth;
+    g.save(); g.translate(sp.x, sp.y); g.rotate(sp.rot);
+    g.globalCompositeOperation = 'lighter'; g.strokeStyle = 'rgba(255,230,150,' + (sp.fixed ? 0.5 : 0.9) + ')'; g.lineWidth = sp.fixed ? 4 : 6; g.setLineDash(sp.fixed ? [] : [10, 8]);
+    g.strokeRect(-aw/2 - 10, -ah/2 - 10, aw + 20, ah + 20); g.restore();
+    if (sp.fixed) { g.save(); g.font = 'bold 17px sans-serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,.9)'; g.fillText('✨ ' + (sp.nick || (sp.seat + '번')) + '의 작품', sp.x, sp.y + ah/2 + 30); g.restore(); }
+  }
 }
 function spawnWake(x, y) { particles.push({ type: 'splash', x: x, y: y, vx: (Math.random()-0.5)*20, vy: -10, life: 0.6, age: 0, s: 2 + Math.random()*2 }); }
 
@@ -632,6 +639,8 @@ function demoWait(sp) {
   return false;
 }
 function roam(sp, t, dt) {
+  if (sp.fixed) { sp.ty = sp.y; return; }                                  // 전시된 작품: 그 자리 그대로
+  if (sp.heldBy) { var h = sp.heldBy; if (sprites.indexOf(h) < 0) { sp.heldBy = null; } else { sp.x = h.x + (h.dir > 0 ? 1 : -1)*(h.w*h.depth*0.5 + sp.w*sp.depth*0.35); sp.y = h.y - sp.h*sp.depth*0.2; sp.ty = sp.y; return; } }
   if (manualMove(sp, t, dt)) return;
   if (demoWait(sp)) { if (sp.motion === 'swim' || sp.motion === 'fly' || sp.motion === 'drift') sp.y += (sp.ty - sp.y)*0.03; if (sp.jumpT !== undefined) { var jt0 = t - sp.jumpT; sp.bounce = jt0 < 0.5 ? Math.sin(jt0/0.5*Math.PI)*30 : 0; if (jt0 >= 0.5) delete sp.jumpT; } return; }
   var b = cur().band, mo = sp.motion, hh = halfH(sp);
@@ -783,13 +792,21 @@ function missionStop(silent) {
 }
 /* 줍기/놓기: 버튼 하나. 들고 있으면 놓고, 아니면 가까운 쓰레기를 집는다 */
 function grab(id) {
-  var sp = findSprite(id); if (!sp || !M || M.ended) { if (sp && !M) stuck(sp, '지금은 청소 시간이 아니야'); return false; }
+  var sp = findSprite(id); if (!sp) return false;
+  if (sp.art) return false;
+  /* 작품 전시: 내 작품(같은 자리 번호)을 집어 옮기고 놓으면 그 자리에 전시된다. 청소 미션과 무관하게 된다 */
+  if (sp.holdingArt) { var a = sp.holdingArt; a.heldBy = null; a.fixed = true; a.manual = null; sp.holdingArt = null; say('✨ 전시!', a.x, a.y - a.h*a.depth/2 - 40, '#ffd166'); Sound.play('friend'); return true; }
+  var bestA = null, bdA = Math.max(110, sp.w*sp.depth*0.8);
+  sprites.forEach(function (o) { if (!o.art || o.heldBy || o.seat !== sp.seat) return; var d = Math.hypot(o.x - sp.x, o.y - sp.y); if (d < bdA) { bdA = d; bestA = o; } });
+  if (bestA && !sp.holding) { bestA.fixed = false; bestA.heldBy = sp; bestA.manual = null; bestA.ctrl = null; sp.holdingArt = bestA; sp.chat = { text: '작품을 들었다! ↺↻ 로 돌려요', at: performance.now(), until: performance.now() + 2500 }; Sound.play('enter'); return true; }
+  if (!M || M.ended) { stuck(sp, bestA ? '' : '가까이에 내 작품이 없어'); return false; }
   if (sp.holding) return drop(id);
   var best = null, bd = Math.max(90, sp.w*sp.depth*0.7);
   M.trash.forEach(function (t) { if (t.held) return; var d = Math.hypot(t.x - sp.x, t.y - sp.y); if (d < bd) { bd = d; best = t; } });
   if (!best) { stuck(sp, '가까이에 쓰레기가 없어'); return false; }
   best.held = id; sp.holding = best; sp.chat = { text: '주웠다!', at: performance.now(), until: performance.now() + 1500 }; Sound.play('enter'); return true;
 }
+function rotateArt(id, dir) { var sp = findSprite(id); if (!sp) return false; var a = sp.holdingArt; if (!a) { stuck(sp, '작품을 먼저 들어요'); return false; } a.rot += dir*Math.PI/12; return true; }
 function drop(id) {
   var sp = findSprite(id); if (!sp || !sp.holding) return false;
   var t = sp.holding; sp.holding = null; t.held = null;
@@ -852,7 +869,7 @@ function drawMission(t) {
 
 /* ═══════════════ 장면 ═══════════════ */
 var scene = null, autoPlay = true, lastAuto = 0;
-function free() { return sprites.filter(function (s) { return !s.ctrl && s.x > 0 && s.x < W && ['sink','ride','hidden','breach','fin'].indexOf(s.motion) < 0 && !s.rising; }); }
+function free() { return sprites.filter(function (s) { return !s.ctrl && !s.art && s.x > 0 && s.x < W && ['sink','ride','hidden','breach','fin'].indexOf(s.motion) < 0 && !s.rising; }); }
 function pickTwo() { var f = free(); if (f.length < 2) return null; f.sort(function(){return Math.random()-0.5;}); return [f[0], f[1]]; }
 /* 장면이 벌어질 높이: 두 친구의 움직임이 허용하는 범위 안에서 */
 function meetY(a, b) {
@@ -1053,7 +1070,7 @@ requestAnimationFrame(step);
   function add(img, meta) { meta = meta || {}; if (meta.id) { var dup = sprites.some(function (s) { return s.id === meta.id; }); if (dup) return null; }
     var keep = opts.idFor; opts.idFor = meta.id ? function () { return meta.id; } : null; opts._rig = meta.rig ? { name: meta.rig, box: meta.rigBox } : null; addSprite(img, meta.seat, meta.cat, meta.nick, meta.desc); opts.idFor = keep; opts._rig = null;
     var sp = sprites[sprites.length - 1]; if (meta.abil) { sp.abil = meta.abil; applyRules(sp, true); }
-    sp.demo = !!meta.demo;
+    sp.demo = !!meta.demo; sp.art = meta.cat === 'art';
     var face = meta.face || (meta.rigBox && meta.rigBox.face);                 // 아이가 고른 그림 방향이 도안 기본값보다 우선
     if (face) { sp.faceLeft = face === 'left'; sp.noFlip = face === 'front'; }
     return sp; }
@@ -1075,7 +1092,7 @@ requestAnimationFrame(step);
   function stuck(sp, text) { if (!sp.chat || sp.chat.text !== text) sp.chat = { text: text, at: performance.now(), until: performance.now() + 2500 }; }
   function friendsById(idA, idB) { var a = findSprite(idA), b = findSprite(idB); if (!a || !b) return false; endScene(); a.manual = null; b.manual = null; return friends([a, b]); }
   /* 화면 안 그림들의 위치(0~1 비율). 아이 화면의 '가까운 친구' 판단용 */
-  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0, hold: sp.holding ? 1 : 0, with: sp.wait ? sp.wait.id : '' }; }); return o; }
+  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0, hold: (sp.holding || sp.holdingArt) ? 1 : 0, holdArt: sp.holdingArt ? 1 : 0, art: sp.art ? 1 : 0, with: sp.wait ? sp.wait.id : '' }; }); return o; }
   function nearestDemo(id, maxFrac) { var me = findSprite(id); if (!me) return null; var best = null, bd = (maxFrac || 0.35)*W;
     sprites.forEach(function (sp) { if (!sp.demo || sp === me || sp.x < 0 || sp.x > W) return; var d = Math.hypot(sp.x - me.x, sp.y - me.y); if (d < bd) { bd = d; best = sp; } }); return best; }
   function dash(id, secs) { var sp = findSprite(id); if (!sp) return; if (sp.wait) { sp.wait.wait = null; sp.wait = null; } sp.speed *= 3; setTimeout(function () { sp.speed /= 3; }, (secs || 4)*1000); }
@@ -1089,7 +1106,7 @@ requestAnimationFrame(step);
   return {
     add: add, clear: clear, removeSprite: removeSprite, control: control, chat: chat, find: findSprite, duel: duel, friendsById: friendsById, positions: positions,
     nearestDemo: nearestDemo, dash: dash, flee: flee,
-    missionStart: missionStart, missionStop: function () { missionStop(false); }, grab: grab, mission: function () { return M ? { type: M.type, left: M.trash.length, ended: M.ended, bin: { x: M.bin.x, y: M.bin.y }, trash: M.trash.map(function (t) { return { x: t.x, y: t.y, held: t.held, kind: t.kind }; }), score: M.score } : null; },
+    missionStart: missionStart, missionStop: function () { missionStop(false); }, grab: grab, rotateArt: rotateArt, mission: function () { return M ? { type: M.type, left: M.trash.length, ended: M.ended, bin: { x: M.bin.x, y: M.bin.y }, trash: M.trash.map(function (t) { return { x: t.x, y: t.y, held: t.held, kind: t.kind }; }), score: M.score } : null; },
     duelScores: function (sa, sb) { if (scene && scene.name === 'duel') scene.setScores(sa, sb); }, sceneName: function () { return scene ? scene.name : null; }, setWorld: setWorld, defineWorld: defineWorld, worlds: WORLDS, custom: CUSTOM,
     friends: function () { endScene(); friends(pickTwo()); }, tournament: function () { endScene(); tournament(); }, dance: function () { endScene(); dance(); }, endScene: endScene,
     setAuto: function (v) { autoPlay = !!v; }, getAuto: function () { return autoPlay; }, sound: Sound, cutout: cutoutPaper, parseAbilities: parseAbilities,

@@ -155,6 +155,7 @@
       <button class="tool" id="undo">되돌리기</button>
       <button class="tool" id="clearDraw">다 지우기</button>
       <button class="tool" id="guideToggle">도안 끄기</button>
+      <button class="tool" id="starTool" style="display:none">⭐ 별 도구</button>
       <label class="tool" id="photoBtn" style="display:none">📷 사진·앨범<input type="file" id="photoIn" accept="image/*"></label>
     </div>
     <h2>이 그림은 어느 쪽을 보고 있어요?</h2>
@@ -220,13 +221,15 @@
 <!-- G 조종 -->
 <div class="page" id="pCtrl">
   <h2>무대에서 내 그림 움직이기</h2>
-  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요. 청소 시간에는 가운데 [줍기]로 쓰레기를 줍고, 수거선·수거함 옆에서 [놓기]!<br>가라앉은 것은 못 움직이고, 물고기·잠수함은 물 밖으로 못 나가요(설명에 능력을 써 주면 달라져요).</p>
+  <p class="small">무대에 보낸 그림을 골라요. 화살표를 누르고 있으면 그쪽으로 움직여요. 손을 떼면 3초 뒤에 혼자 돌아다녀요. 청소 시간에는 가운데 [줍기]로 쓰레기를 줍고, 수거선·수거함 옆에서 [놓기]! 마법의 밤에서는 [줍기]로 내 작품을 들어 옮기고 돌려서 전시해요.<br>가라앉은 것은 못 움직이고, 물고기·잠수함은 물 밖으로 못 나가요(설명에 능력을 써 주면 달라져요).</p>
   <div class="ctrlPick" id="ctrlPick"></div>
   <div class="pad">
     <span></span><button data-d="0,-1">▲</button><span></span>
     <button data-d="-1,0">◀</button><button id="padGrab" style="background:#2ec4b6;font-size:20px">줍기</button><button data-d="1,0">▶</button>
     <span></span><button data-d="0,1">▼</button><span></span>
   </div>
+  <div class="row" id="artRow" style="display:none;justify-content:center"><button class="btn" data-r="rotl" style="font-size:26px">↺ 왼쪽으로</button><button class="btn" data-r="rotr" style="font-size:26px">↻ 오른쪽으로</button></div>
+  <p class="small" id="artNote" style="display:none">작품을 든 상태예요. 옮기고 돌린 뒤 [놓기]를 누르면 그 자리에 전시돼요.</p>
   <h2>친구와 놀기</h2>
   <div class="row"><button class="btn g" id="bFriendPick">🤝 친구하기</button><button class="btn p" id="bDuelPick">🤼 씨름하기</button></div>
   <p class="small" id="nearNote">누르면 무대에 있는 친구 목록이 나와요. 고르면 둘이 만나서 시작해요.</p>
@@ -291,12 +294,8 @@
   <button class="btn b" id="optAi">✨ AI로 바꾸기<small>설명을 쓰면 AI가 무대에 어울리는 그림으로 만들어요</small></button>
   <button class="btn" id="optCancel">취소</button>
 </div></div>
-<script src="../stage_engine.js"></script>
-<script src="../stage_demos.js"></script>
-<script src="../stage_guides.js"></script>
-<script src="../stage_bus.js"></script>
-<script src="../stage_server.js"></script>
-<script src="../stage_rt.js"></script>
+<script>/* JS 는 항상 새로 받는다 (GitHub Pages 10분 캐시 우회) */
+(function(){var v=Date.now();['stage_engine.js','stage_demos.js','stage_guides.js','stage_bus.js','stage_server.js','stage_rt.js'].forEach(function(f){document.write('<script src="../'+f+'?v='+v+'"><\/script>');});})();</script>
 <script>
 /* ───────── 자료 ───────── */
 var NICKS = ['번개상어','무지개고래','용감한게','반짝별','바다친구','초록거북','노랑오리','하늘새','씩씩이','방글이','테우선장','해녀삼춘'];
@@ -316,6 +315,7 @@ var EXHIBITS = [
   { id:'airplane', nm:'비행기',   cat:'aircraft', guide:'airplane', tags:['구름 위를 날며','하늘을 가르며','빙글 돌며','착륙하는'] },
   { id:'paperplane', nm:'종이비행기', cat:'light', guide:'paperplane', tags:['바람에 실려','살랑살랑','멀리 날아가는','빙글 도는'] },
   { id:'submarine', nm:'잠수함',  cat:'sub',     guide:'submarine', tags:['깊은 바다로','잠망경을 올리고','거품을 내며','조용히'] },
+  { id:'art',      ic:'🖼️', nm:'전시 작품', cat:'art', guide:null, art:true, tags:['별자리','달과 별','무지개','우리 가족','내 얼굴','꿈꾸는 바다','반짝반짝'] },
   { id:'photo',    ic:'📷', nm:'사진·앨범 따라 그리기', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','걸어다니는','떠다니는','반짝이는'] },
   { id:'free',     ic:'🎨', nm:'내 마음대로', cat:'fish', guide:null, tags:['날아다니는','헤엄치는','뛰어오르는','반짝이는','커다란','아주 작은','웃고 있는'] }
 ];
@@ -471,6 +471,19 @@ function setFace(f) { face = f; document.querySelectorAll('#faceChips .chip').fo
 document.querySelectorAll('#faceChips .chip').forEach(function (c) { c.onclick = function () { setFace(c.dataset.f); }; });
 function defaultFace(ex) { var r = ex && ex.guide && StageGuides.rigs[ex.guide]; return r && r.noFlip ? 'front' : (r && r.faceLeft ? 'left' : 'right'); }
 
+/* 별 도구: 톡톡 찍으면 별이 생기고 앞 별과 선으로 이어진다 (별자리) */
+var starMode = false, lastStar = null;
+document.getElementById('starTool').onclick = function () { starMode = !starMode; this.classList.toggle('on', starMode); lastStar = null; msg('drawMsg', starMode ? '별 도구: 톡톡 찍어요. 다시 누르면 붓으로 돌아가요' : '', starMode ? 'ok' : ''); };
+document.getElementById('draw').addEventListener('pointerdown', function (e) {
+  if (!starMode || window._pinching) return; e.stopImmediatePropagation(); e.preventDefault();
+  var r = this.getBoundingClientRect(), x = (e.clientX - r.left)*800/r.width, y = (e.clientY - r.top)*800/r.height, c = P.ctx;
+  c.save(); c.globalCompositeOperation = 'source-over';
+  if (lastStar) { c.strokeStyle = 'rgba(255,245,200,.9)'; c.lineWidth = 4; c.beginPath(); c.moveTo(lastStar.x, lastStar.y); c.lineTo(x, y); c.stroke(); }
+  c.fillStyle = '#fff3b0'; c.strokeStyle = '#ffb703'; c.lineWidth = 3; c.beginPath();
+  for (var i = 0; i < 10; i++) { var rr = i % 2 ? 9 : 20, a = -Math.PI/2 + i*Math.PI/5; c.lineTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr); }
+  c.closePath(); c.fill(); c.stroke(); c.restore(); lastStar = { x: x, y: y };
+}, true);
+
 /* ───────── C 그림 만들기 ───────── */
 var P = null, curEx = null, guideOn = true, result = null;
 var exBox = document.getElementById('exhibits');
@@ -489,6 +502,8 @@ function pickExhibit(ex, card) {
   var cv = document.getElementById('draw'); P = Painter(cv, 800, 800, { zoomRef: { z: drawZoom } }); drawZoomRef.p = P; drawZoom.reset(); palette(document.getElementById('palette'), P);
   document.querySelectorAll('#pDraw .size').forEach(function (s, i) { s.classList.toggle('on', i === 0); });
   drawGuide(ex); setFace(defaultFace(ex));
+  starMode = false; lastStar = null; document.getElementById('starTool').style.display = ex.art ? '' : 'none'; document.getElementById('starTool').classList.remove('on');
+  if (ex.art) msg('drawMsg', '그림이나 별자리를 그려요. ⭐ 별 도구로 톡톡 찍으면 별이 선으로 이어져요. 무대로 보내면 마법의 밤에서 내 캐릭터로 들어 옮기고 돌려서 전시해요.', 'ok');
   var tg = document.getElementById('tags'); tg.innerHTML = '';
   ex.tags.concat(COMMON_TAGS).forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { var ta = document.getElementById('desc'); ta.value = (ta.value.trim() + ' ' + t).trim(); }; tg.appendChild(c); });
   document.getElementById('resultBox').style.display = 'none'; msg('drawMsg', '');
@@ -709,7 +724,9 @@ document.querySelectorAll('.pad [data-d]').forEach(function (b) {
   b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 });
 document.getElementById('padGrab').addEventListener('pointerdown', function (e) { e.preventDefault(); if (!ctrlId) return; StageRT.sendCtrl(ctrlId, 0, 0, 'grab'); });
-function refreshGrabLabel() { var me = posMap[ctrlId]; var b = document.getElementById('padGrab'); b.textContent = me && me.hold ? '놓기' : '줍기'; b.style.background = me && me.hold ? '#e63946' : '#2ec4b6'; }
+function refreshGrabLabel() { var me = posMap[ctrlId]; var b = document.getElementById('padGrab'); b.textContent = me && me.hold ? '놓기' : '줍기'; b.style.background = me && me.hold ? '#e63946' : '#2ec4b6';
+  var art = !!(me && me.holdArt); document.getElementById('artRow').style.display = art ? 'flex' : 'none'; document.getElementById('artNote').style.display = art ? '' : 'none'; }
+document.querySelectorAll('#artRow [data-r]').forEach(function (b) { b.addEventListener('pointerdown', function (e) { e.preventDefault(); if (ctrlId) StageRT.sendCtrl(ctrlId, 0, 0, b.dataset.r); }); });
 function sendChat() { var t = document.getElementById('chatIn').value.trim(); if (!t || !ctrlId) return; StageRT.sendChat(ctrlId, seat, nick, t); document.getElementById('chatIn').value = ''; msg('ctrlMsg', '말풍선을 띄웠어요 💬', 'ok'); }
 document.getElementById('chatSend').onclick = sendChat;
 document.getElementById('chatIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });

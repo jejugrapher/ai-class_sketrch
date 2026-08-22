@@ -32,12 +32,8 @@
   <button id="dFriend">친구</button><button id="dSsireum">씨름</button><button id="dDance">춤</button>
   <button id="dDemo">예시</button><button id="dRig">도안 예시</button><button id="dWorld">아이배경 예시</button><button id="dClear">비우기</button>
 </div>
-<script src="../stage_engine.js"></script>
-<script src="../stage_demos.js"></script>
-<script src="../stage_guides.js"></script>
-<script src="../stage_bus.js"></script>
-<script src="../stage_server.js"></script>
-<script src="../stage_rt.js"></script>
+<script>/* JS 는 항상 새로 받는다 (GitHub Pages 10분 캐시 우회) */
+(function(){var v=Date.now();['stage_engine.js','stage_demos.js','stage_guides.js','stage_bus.js','stage_server.js','stage_rt.js'].forEach(function(f){document.write('<script src="../'+f+'?v='+v+'"><\/script>');});})();</script>
 <script>
 var tag = document.getElementById('tag');
 var E = new StageEngine({ canvas: document.getElementById('c'), soundBase: '../assets/sound/',
@@ -87,7 +83,7 @@ StageBus.on(function (m) {
 });
 setInterval(function () { StageBus.send({ type: 'status', count: E.sprites().length, world: E.world() }); }, 3000);
 /* 아이 조종·채팅 */
-StageRT.onCtrl(function (id, dx, dy, act) { if (act === 'grab') { E.grab(id); return; } E.control(id, +dx || 0, +dy || 0); });
+StageRT.onCtrl(function (id, dx, dy, act) { if (act === 'grab') { E.grab(id); return; } if (act === 'rotl' || act === 'rotr') { E.rotateArt(id, act === 'rotl' ? -1 : 1); return; } E.control(id, +dx || 0, +dy || 0); });
 StageRT.onChat(function (id, text) { E.chat(id, text); });
 StageRT.init('stage').then(function (mode) {
   rtMode = mode; if (mode !== 'firebase') return;
