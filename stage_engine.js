@@ -585,7 +585,9 @@ function drawBadge(sp) {
 /* 평소 움직임 */
 /* 아이가 조종하는 그림이 예시 캐릭터 가까이 오면 둘 다 멈춰 마주 보고 기다린다.
    화살표로 움직이면 풀리고, 말·친구하기·씨름은 그 자리에서 이어진다 */
+var PAUSE_ON_MEET = false;                        // 가까이 가면 멈추는 기능. 조작을 방해해 끔(친구하기·씨름은 아이 화면에서 상대를 고른다)
 function encounters(t) {
+  if (!PAUSE_ON_MEET) { sprites.forEach(function (sp) { if (sp.wait) { sp.wait = null; sp.waitOwner = false; } }); return; }
   if (scene) { sprites.forEach(function (sp) { sp.wait = null; sp.waitOwner = false; }); return; }
   var R = W*0.12, now = performance.now();
   sprites.forEach(function (sp) { if (sp.wait && (sprites.indexOf(sp.wait) < 0)) sp.wait = null; });

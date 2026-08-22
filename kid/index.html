@@ -227,9 +227,9 @@
     <button data-d="-1,0">◀</button><button id="padGrab" style="background:#2ec4b6;font-size:20px">줍기</button><button data-d="1,0">▶</button>
     <span></span><button data-d="0,1">▼</button><span></span>
   </div>
-  <h2>가까이 있는 친구</h2>
-  <p class="small">화살표로 친구 그림 가까이 가면 여기에 나타나요.</p>
-  <div id="nearBox"><p class="small" id="nearNote">아직 가까운 친구가 없어요.</p></div>
+  <h2>친구와 놀기</h2>
+  <div class="row"><button class="btn g" id="bFriendPick">🤝 친구하기</button><button class="btn p" id="bDuelPick">🤼 씨름하기</button></div>
+  <p class="small" id="nearNote">누르면 무대에 있는 친구 목록이 나와요. 고르면 둘이 만나서 시작해요.</p>
   <h2>말하기</h2>
   <div class="chatrow"><input type="text" id="chatIn" maxlength="40" placeholder="예: 안녕! 나는 번개상어야"><button class="btn p" id="chatSend">말하기</button></div>
   <div class="chips" id="chatChips"></div>
@@ -251,6 +251,13 @@
   <div id="stageMsg"></div>
 </div>
 
+<div id="pickSheet" style="position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:26">
+  <div style="background:#fff;width:100%;border-radius:20px 20px 0 0;padding:16px 16px 28px;max-height:75vh;overflow:auto">
+    <h2 id="pickTitle">누구와?</h2>
+    <div id="pickList" class="items" style="grid-template-columns:repeat(2,1fr)"></div>
+    <button class="btn wide" id="pickCancel">취소</button>
+  </div>
+</div>
 <div id="askBanner"><div id="askText" style="font-size:18px;font-weight:bold;margin-bottom:10px"></div><div class="row"><button class="btn p" id="askYes">수락</button><button class="btn" id="askNo">거절</button></div></div>
 <div id="duel">
   <h1>🤼 씨름!</h1>
@@ -692,7 +699,7 @@ function openCtrl(id) {
   sent.forEach(function (it) { var im = document.createElement('img'); im.src = it.dataUrl; im.className = it.id === ctrlId ? 'on' : ''; im.onclick = function () { ctrlId = it.id; box.querySelectorAll('img').forEach(function (x) { x.classList.toggle('on', x === im); }); }; box.appendChild(im); });
   var chips = document.getElementById('chatChips'); chips.innerHTML = '';
   ['안녕!', '나 여기 있어', '같이 놀자', '씨름하자!', '춤추자 🎵', '내가 제일 빨라', '배고파', '으악!'].forEach(function (t) { var c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.onclick = function () { document.getElementById('chatIn').value = t; sendChat(); }; chips.appendChild(c); });
-  show('pCtrl'); renderNear();
+  show('pCtrl');
 }
 function setDir(dx, dy) { if (!ctrlId) return; holdDir = [dx, dy]; StageRT.sendCtrl(ctrlId, dx, dy); clearInterval(holdTimer); if (dx || dy) holdTimer = setInterval(function () { StageRT.sendCtrl(ctrlId, dx, dy); }, 1500); }   // 누르고 있는 동안 1.5초마다 다시 알림(3초 자동 복귀 방지)
 document.querySelectorAll('.pad [data-d]').forEach(function (b) {
@@ -709,36 +716,35 @@ document.getElementById('chatIn').addEventListener('keydown', function (e) { if 
 /* ── 가까운 친구 · 친구하기 · 씨름 (Firebase 실시간 경로에서만) ── */
 var posMap = {}, nearIds = [], matchKey = null, myDuelId = null, lastKey = null, duelOver = false;
 function myItems() { return store.items.filter(function (i) { return i.kind === 'sprite' && i.sent; }).map(function (i) { return i.id; }); }
-var nearKey = '', nearStable = {};
-function renderNear() {
-  var box = document.getElementById('nearBox');
-  if (!ctrlId || !posMap[ctrlId]) { if (nearKey !== 'none') { nearKey = 'none'; box.innerHTML = '<p class="small">내 그림이 무대에 보이면 친구를 찾아요.</p>'; } return; }
-  var me = posMap[ctrlId], mine = myItems(), list = [];
-  if (me.with && posMap[me.with]) {                                          // 프로젝터가 정한 "마주 보는 상대" — 둘 다 멈춰 있으니 고정
-    var o = posMap[me.with]; list = [{ id: me.with, nick: o.nick, seat: o.seat, demo: o.demo, facing: true }];
-  } else {
-    Object.keys(posMap).forEach(function (id) { if (id === '_t' || id === ctrlId || mine.indexOf(id) >= 0) return; var o = posMap[id]; if (!o || typeof o.x !== 'number') return;
-      var d = Math.hypot(o.x - me.x, (o.y - me.y)*0.56), lim = nearStable[id] ? 0.24 : 0.16;   // 들어올 땐 0.16, 나갈 땐 0.24 (깜빡임 방지)
-      if (d < lim) { nearStable[id] = 1; list.push({ id: id, d: d, nick: o.nick, seat: o.seat, demo: o.demo }); } else delete nearStable[id]; });
-    list.sort(function (p, q) { return p.d - q.d; }); list = list.slice(0, 3);
-  }
-  nearIds = list.map(function (l) { return l.id; });
-  var key = list.map(function (l) { return l.id + (l.facing ? '!' : ''); }).join(',');
-  if (key === nearKey) return; nearKey = key;                                   // 바뀐 게 없으면 다시 그리지 않는다
-  box.innerHTML = '';
-  if (!list.length) { box.innerHTML = '<p class="small">아직 가까운 친구가 없어요. 화살표로 다가가 봐요.</p>'; return; }
+function renderNear() {}                                   // (자동 목록은 쓰지 않는다)
+/* 친구하기·씨름하기: 버튼 → 무대의 캐릭터 목록에서 고르기 */
+function openPick(type) {
+  if (!ctrlId) { msg('ctrlMsg', '먼저 내 그림을 골라요', 'no'); return; }
+  if (StageRT.mode() !== 'firebase') { msg('ctrlMsg', '실시간 연결(Firebase)이 있어야 해요', 'no'); return; }
+  var mine = myItems(), list = [];
+  Object.keys(posMap).forEach(function (id) { if (id === '_t' || mine.indexOf(id) >= 0) return; var o = posMap[id]; if (!o || typeof o.x !== 'number') return; list.push({ id: id, nick: o.nick, seat: o.seat, demo: o.demo }); });
+  list.sort(function (p, q) { return (p.demo - q.demo) || (p.seat - q.seat) || String(p.nick).localeCompare(String(q.nick)); });
+  document.getElementById('pickTitle').textContent = type === 'friend' ? '🤝 누구와 친구할까요?' : '🤼 누구와 씨름할까요?';
+  var box = document.getElementById('pickList'); box.innerHTML = '';
+  if (!list.length) box.innerHTML = '<p class="small">지금 무대에 다른 친구가 없어요.</p>';
   list.forEach(function (f) {
-    var d = document.createElement('div'); d.className = 'near';
-    d.innerHTML = '<b>' + (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + (f.demo ? ' <span class="small">(무대 친구)</span>' : '') + (f.facing ? ' <span class="small">· 마주 보는 중</span>' : '') + '</b><div class="row"><button class="btn g">🤝 친구하기</button><button class="btn p">🤼 씨름하기</button></div>';
-    var bs = d.querySelectorAll('button');
-    bs[0].onclick = function () { StageRT.sendReq({ type: 'friend', from: ctrlId, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '와 친구가 됐어요 💛', 'ok'); };
-    bs[1].onclick = function () { StageRT.sendReq({ type: 'ssireum', from: ctrlId, fromNick: nick, fromSeat: seat, to: f.id }); msg('ctrlMsg', f.demo ? '씨름 시작! 화면이 열리면 연타해요' : (f.nick || '친구') + '에게 씨름을 신청했어요. 수락을 기다려요…', ''); };
-    box.appendChild(d);
+    var b = document.createElement('button'); b.className = 'btn'; b.style.cssText = 'text-align:left;font-size:16px;padding:12px';
+    b.innerHTML = (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + (f.demo ? '<br><span class="small">무대 친구</span>' : '');
+    b.onclick = function () {
+      document.getElementById('pickSheet').style.display = 'none';
+      if (type === 'friend') { StageRT.sendReq({ type: 'friend', from: ctrlId, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '와 친구가 됐어요 💛 프로젝터를 봐요', 'ok'); }
+      else { StageRT.sendReq({ type: 'ssireum', from: ctrlId, fromNick: nick, fromSeat: seat, to: f.id }); msg('ctrlMsg', f.demo ? '씨름 시작! 화면이 열리면 연타해요' : (f.nick || '친구') + '에게 씨름을 신청했어요. 수락을 기다려요…', ''); }
+    };
+    box.appendChild(b);
   });
+  document.getElementById('pickSheet').style.display = 'flex';
 }
+document.getElementById('bFriendPick').onclick = function () { openPick('friend'); };
+document.getElementById('bDuelPick').onclick = function () { openPick('ssireum'); };
+document.getElementById('pickCancel').onclick = function () { document.getElementById('pickSheet').style.display = 'none'; };
 StageRT.init('kid').then(function (mode) {
   if (mode !== 'firebase') return;
-  StageRT.onPos(function (m) { posMap = m; if (document.getElementById('pCtrl').classList.contains('on')) { renderNear(); refreshGrabLabel(); } });
+  StageRT.onPos(function (m) { posMap = m; if (document.getElementById('pCtrl').classList.contains('on')) refreshGrabLabel(); });
   /* 씨름 신청 받기 */
   StageRT.onReq(function (r, key) {
     if (r.type !== 'ssireum' || myItems().indexOf(r.to) < 0 || key === lastKey) return; lastKey = key;

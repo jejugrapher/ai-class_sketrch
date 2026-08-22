@@ -64,7 +64,8 @@ function toCanvas(im) { var c = document.createElement('canvas'); c.width = im.w
 function addRigSamples() {
     var cols = ['#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#ffb703', '#cdb4db', '#90be6d'];
     var cats = { whale: 'whale', oarfish: 'fish', crab: 'crawler', clam: 'clam', squid: 'fish', octopus: 'crawler', haenyeo: 'person', person: 'person', bird: 'bird', raft: 'boat', sailboat: 'boat', car: 'vehicle', airplane: 'aircraft', paperplane: 'light', submarine: 'sub' };
-    StageGuides.names.forEach(function (n, i) { var smp = StageGuides.sample(n, cols[i % cols.length]); if (smp) { var sp = E.add(smp.canvas, { id: 'demo_' + n, seat: 0, nick: StageDemos.NICKS[i % 12], cat: cats[n] || 'fish', rig: smp.rig, rigBox: smp.rigBox, demo: true }); } });
+    var KO = { whale: '참고래', oarfish: '산갈치', crab: '게', clam: '조개', squid: '오징어', octopus: '문어', haenyeo: '해녀', person: '사람', bird: '새', raft: '뗏목', sailboat: '돛단배', car: '자동차', airplane: '비행기', paperplane: '종이비행기', submarine: '잠수함' };
+    StageGuides.names.forEach(function (n, i) { var smp = StageGuides.sample(n, cols[i % cols.length]); if (smp) { E.add(smp.canvas, { id: 'demo_' + n, seat: 0, nick: KO[n] || n, cat: cats[n] || 'fish', rig: smp.rig, rigBox: smp.rigBox, demo: true }); } });
 }
 
 /* 강사 명령 받기 */
