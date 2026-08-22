@@ -586,15 +586,16 @@ function drawBadge(sp) {
 /* 아이가 조종하는 그림이 예시 캐릭터 가까이 오면 둘 다 멈춰 마주 보고 기다린다.
    화살표로 움직이면 풀리고, 말·친구하기·씨름은 그 자리에서 이어진다 */
 function encounters(t) {
-  if (scene) { sprites.forEach(function (sp) { sp.wait = null; }); return; }
+  if (scene) { sprites.forEach(function (sp) { sp.wait = null; sp.waitOwner = false; }); return; }
   var R = W*0.12, now = performance.now();
   sprites.forEach(function (sp) { if (sp.wait && (sprites.indexOf(sp.wait) < 0)) sp.wait = null; });
   sprites.forEach(function (kid) {
-    if (kid.demo || kid.ctrl || !(kid.lastInput && now - kid.lastInput < 15000)) { if (kid.wait && !kid.demo) { kid.wait.wait = null; kid.wait = null; } return; }
+    if (kid.wait && !kid.waitOwner) return;                                                  // 상대로서 기다리는 중: 짝을 만든 쪽이 푼다
+    if (kid.demo || kid.ctrl || !(kid.lastInput && now - kid.lastInput < 15000)) { if (kid.wait) { kid.wait.wait = null; kid.wait.waitOwner = false; kid.wait = null; kid.waitOwner = false; } return; }
     var d = kid.wait, dist = d ? Math.hypot(d.x - kid.x, d.y - kid.y) : 1e9;
-    if (d && dist > R*1.6) { d.wait = null; kid.wait = null; d = null; }
-    if (!d) { var best = null, bd = R; sprites.forEach(function (o) { if (!o.demo || o.ctrl || o.wait) return; var dd = Math.hypot(o.x - kid.x, o.y - kid.y); if (dd < bd) { bd = dd; best = o; } });
-      if (best) { kid.wait = best; best.wait = kid; best.manual = null; best.chat = { text: ['무슨 일이야?', '안녕? 나랑 놀래?', '뭐 할까?'][Math.floor(Math.random()*3)], at: now, until: now + 3000 }; if (!kid.manual) kid.chat = { text: '말하기·친구하기·씨름하기!', at: now, until: now + 3000 }; } }
+    if (d && dist > R*1.6) { d.wait = null; d.waitOwner = false; kid.wait = null; kid.waitOwner = false; d = null; }
+    if (!d) { var best = null, bd = R; sprites.forEach(function (o) { if (o === kid || o.ctrl || o.wait || o.x < 0 || o.x > W || o.motion === 'sink' || o.motion === 'hidden') return; var dd = Math.hypot(o.x - kid.x, o.y - kid.y); if (dd < bd) { bd = dd; best = o; } });
+      if (best) { kid.wait = best; kid.waitOwner = true; best.wait = kid; best.waitOwner = false; best.manual = null; if (best.demo) best.chat = { text: ['무슨 일이야?', '안녕? 나랑 놀래?', '뭐 할까?'][Math.floor(Math.random()*3)], at: now, until: now + 3000 }; if (!kid.manual) kid.chat = { text: '말하기·친구하기·씨름하기!', at: now, until: now + 3000 }; } }
   });
 }
 function idleFacing(sp, t) {                      // 멈춰서 상대를 보며 살짝 숨 쉰다
@@ -726,7 +727,7 @@ function steer(sp) {
   if (c.bounce !== undefined) sp.bounce = c.bounce;
   if (c.dir) sp.dir = c.dir;
 }
-function release(sp) { sp.ctrl = null; sp.wait = null; sp.rot = 0; sp.bounce = 0; sp.mood = null; sp.ty = homeY(sp, sp.motion); if (sp.motion === 'sink') { sp.settled = false; sp.vy = 0; } }
+function release(sp) { sp.ctrl = null; if (sp.wait) { sp.wait.wait = null; sp.wait.waitOwner = false; } sp.wait = null; sp.waitOwner = false; sp.rot = 0; sp.bounce = 0; sp.mood = null; sp.ty = homeY(sp, sp.motion); if (sp.motion === 'sink') { sp.settled = false; sp.vy = 0; } }
 
 /* ═══════════════ 효과 ═══════════════ */
 function spawn(type, x, y, n) { for (var i = 0; i < n; i++) particles.push({ type: type, x: x, y: y, vx: (Math.random()-0.5)*120, vy: -40 - Math.random()*120, life: 1.2 + Math.random()*0.8, age: 0, s: 14 + Math.random()*14 }); }
@@ -1045,7 +1046,7 @@ requestAnimationFrame(step);
   function stuck(sp, text) { if (!sp.chat || sp.chat.text !== text) sp.chat = { text: text, at: performance.now(), until: performance.now() + 2500 }; }
   function friendsById(idA, idB) { var a = findSprite(idA), b = findSprite(idB); if (!a || !b) return false; endScene(); a.manual = null; b.manual = null; return friends([a, b]); }
   /* 화면 안 그림들의 위치(0~1 비율). 아이 화면의 '가까운 친구' 판단용 */
-  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0, hold: sp.holding ? 1 : 0 }; }); return o; }
+  function positions() { var o = {}; sprites.forEach(function (sp) { if (sp.x > 0 && sp.x < W) o[sp.id] = { x: +(sp.x/W).toFixed(3), y: +(sp.y/H).toFixed(3), seat: sp.seat || 0, nick: sp.nick || '', demo: sp.demo ? 1 : 0, hold: sp.holding ? 1 : 0, with: sp.wait ? sp.wait.id : '' }; }); return o; }
   function nearestDemo(id, maxFrac) { var me = findSprite(id); if (!me) return null; var best = null, bd = (maxFrac || 0.35)*W;
     sprites.forEach(function (sp) { if (!sp.demo || sp === me || sp.x < 0 || sp.x > W) return; var d = Math.hypot(sp.x - me.x, sp.y - me.y); if (d < bd) { bd = d; best = sp; } }); return best; }
   function dash(id, secs) { var sp = findSprite(id); if (!sp) return; if (sp.wait) { sp.wait.wait = null; sp.wait = null; } sp.speed *= 3; setTimeout(function () { sp.speed /= 3; }, (secs || 4)*1000); }

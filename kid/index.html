@@ -709,17 +709,27 @@ document.getElementById('chatIn').addEventListener('keydown', function (e) { if 
 /* ── 가까운 친구 · 친구하기 · 씨름 (Firebase 실시간 경로에서만) ── */
 var posMap = {}, nearIds = [], matchKey = null, myDuelId = null, lastKey = null, duelOver = false;
 function myItems() { return store.items.filter(function (i) { return i.kind === 'sprite' && i.sent; }).map(function (i) { return i.id; }); }
+var nearKey = '', nearStable = {};
 function renderNear() {
-  if (!ctrlId || !posMap[ctrlId]) { document.getElementById('nearBox').innerHTML = '<p class="small">내 그림이 무대에 보이면 친구를 찾아요.</p>'; return; }
+  var box = document.getElementById('nearBox');
+  if (!ctrlId || !posMap[ctrlId]) { if (nearKey !== 'none') { nearKey = 'none'; box.innerHTML = '<p class="small">내 그림이 무대에 보이면 친구를 찾아요.</p>'; } return; }
   var me = posMap[ctrlId], mine = myItems(), list = [];
-  Object.keys(posMap).forEach(function (id) { if (id === '_t' || id === ctrlId || mine.indexOf(id) >= 0) return; var o = posMap[id]; if (!o || typeof o.x !== 'number') return;
-    var d = Math.hypot(o.x - me.x, (o.y - me.y)*0.56); if (d < 0.16) list.push({ id: id, d: d, nick: o.nick, seat: o.seat, demo: o.demo }); });
-  list.sort(function (p, q) { return p.d - q.d; }); nearIds = list.map(function (l) { return l.id; });
-  var box = document.getElementById('nearBox'); box.innerHTML = '';
+  if (me.with && posMap[me.with]) {                                          // 프로젝터가 정한 "마주 보는 상대" — 둘 다 멈춰 있으니 고정
+    var o = posMap[me.with]; list = [{ id: me.with, nick: o.nick, seat: o.seat, demo: o.demo, facing: true }];
+  } else {
+    Object.keys(posMap).forEach(function (id) { if (id === '_t' || id === ctrlId || mine.indexOf(id) >= 0) return; var o = posMap[id]; if (!o || typeof o.x !== 'number') return;
+      var d = Math.hypot(o.x - me.x, (o.y - me.y)*0.56), lim = nearStable[id] ? 0.24 : 0.16;   // 들어올 땐 0.16, 나갈 땐 0.24 (깜빡임 방지)
+      if (d < lim) { nearStable[id] = 1; list.push({ id: id, d: d, nick: o.nick, seat: o.seat, demo: o.demo }); } else delete nearStable[id]; });
+    list.sort(function (p, q) { return p.d - q.d; }); list = list.slice(0, 3);
+  }
+  nearIds = list.map(function (l) { return l.id; });
+  var key = list.map(function (l) { return l.id + (l.facing ? '!' : ''); }).join(',');
+  if (key === nearKey) return; nearKey = key;                                   // 바뀐 게 없으면 다시 그리지 않는다
+  box.innerHTML = '';
   if (!list.length) { box.innerHTML = '<p class="small">아직 가까운 친구가 없어요. 화살표로 다가가 봐요.</p>'; return; }
-  list.slice(0, 3).forEach(function (f) {
+  list.forEach(function (f) {
     var d = document.createElement('div'); d.className = 'near';
-    d.innerHTML = '<b>' + (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + (f.demo ? ' <span class="small">(무대 친구)</span>' : '') + '</b><div class="row"><button class="btn g">🤝 친구하기</button><button class="btn p">🤼 씨름하기</button></div>';
+    d.innerHTML = '<b>' + (f.seat ? f.seat + '번 ' : '') + (f.nick || '친구') + (f.demo ? ' <span class="small">(무대 친구)</span>' : '') + (f.facing ? ' <span class="small">· 마주 보는 중</span>' : '') + '</b><div class="row"><button class="btn g">🤝 친구하기</button><button class="btn p">🤼 씨름하기</button></div>';
     var bs = d.querySelectorAll('button');
     bs[0].onclick = function () { StageRT.sendReq({ type: 'friend', from: ctrlId, to: f.id }); msg('ctrlMsg', (f.nick || '친구') + '와 친구가 됐어요 💛', 'ok'); };
     bs[1].onclick = function () { StageRT.sendReq({ type: 'ssireum', from: ctrlId, fromNick: nick, fromSeat: seat, to: f.id }); msg('ctrlMsg', f.demo ? '씨름 시작! 화면이 열리면 연타해요' : (f.nick || '친구') + '에게 씨름을 신청했어요. 수락을 기다려요…', ''); };
