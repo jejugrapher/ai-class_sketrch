@@ -64,9 +64,18 @@ var StageRT = (function () {
   function sendReq(req) { if (ok()) db.ref('room/req').push(Object.assign({ t: firebase.database.ServerValue.TIMESTAMP }, req)); }
   function onReq(cb) { if (ok()) db.ref('room/req').limitToLast(10).on('child_added', function (s) { var v = s.val(); if (v && v.t > startedAt - 2000) cb(v, s.key); }); }
   function createMatch(m) { if (!ok()) return null; var ref = db.ref('room/match').push(Object.assign({ t: firebase.database.ServerValue.TIMESTAMP }, m)); return ref.key; }
+  /* 신청 건당 대결 하나만: 같은 키로 먼저 만든 쪽만 성공한다 (프로젝터가 여러 개 열려 있어도 중복되지 않음) */
+  function createMatchOnce(key, m) {
+    if (!ok()) return Promise.resolve(false);
+    return db.ref('room/match/' + key).transaction(function (cur) { if (cur) return; return Object.assign({ t: Date.now() }, m); })
+      .then(function (r) { return !!(r && r.committed); }).catch(function () { return false; });
+  }
+  function finishMatch(key, patch) {                      // 먼저 끝낸 프로젝터만 결과를 쓴다
+    if (!ok()) return; db.ref('room/match/' + key).transaction(function (cur) { if (!cur || cur.status !== 'go') return; return Object.assign({}, cur, patch); });
+  }
   function onMatch(cb) { if (ok()) { var h = function (s) { var v = s.val(); if (v && v.t > startedAt - 5000) cb(v, s.key); }; db.ref('room/match').limitToLast(5).on('child_added', h); db.ref('room/match').limitToLast(5).on('child_changed', h); } }
   function setMatch(key, patch) { if (ok()) db.ref('room/match/' + key).update(patch); }
   function tap(key, id, inc) { if (ok()) db.ref('room/match/' + key + '/score/' + id).transaction(function (v) { return (v || 0) + (inc || 1); }); }
   return { init: init, sendCtrl: sendCtrl, sendChat: sendChat, onCtrl: onCtrl, onChat: onChat, watch: watch, unwatch: unwatch, mode: function () { return mode; },
-           publishPos: publishPos, onPos: onPos, sendReq: sendReq, onReq: onReq, createMatch: createMatch, onMatch: onMatch, setMatch: setMatch, tap: tap };
+           publishPos: publishPos, onPos: onPos, sendReq: sendReq, onReq: onReq, createMatch: createMatch, createMatchOnce: createMatchOnce, finishMatch: finishMatch, onMatch: onMatch, setMatch: setMatch, tap: tap };
 })();

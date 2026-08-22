@@ -67,7 +67,7 @@ var WORLDS = {
   },
   village: {
     name: '옛 포구 마을',
-    band: { sky: [0.08, 0.4], surface: 0.525, swim: [0.56, 0.72], bottom: 0.87 },
+    band: { sky: [0.08, 0.4], surface: 0.525, swim: [0.56, 0.72], bottom: 0.87, plane: [0.54, 0.68] },   // plane: 비스듬히 본 수면 띠 → 배가 위아래로도 다닌다
     /* 마을: 일반 물고기는 물속이라 보이지 않고 물결만. 고래는 뛰어오르고, 상어는 지느러미만 보인다 */
     rule: { fish: 'hidden', whale: 'breach', shark: 'fin', sub: 'hidden', clam: 'hidden', crawler: 'crawl', bird: 'fly', person: 'person', animal: 'walk',
             boat: 'float', vehicle: 'walk', aircraft: 'fly', light: 'fly', heavy: 'walk' },
@@ -101,7 +101,7 @@ function defineWorld(id, def) {
   var img = def.img, band = def.band || {};
   if (def.kind === 'water') { band.surface = band.surface !== undefined ? band.surface : 0.06; band.swim = band.swim || [band.surface + 0.08, (band.bottom || 0.88) - 0.08]; band.bottom = band.bottom || 0.88; }
   else if (def.kind === 'landsky') { band.sky = band.sky || [0.05, (band.bottom || 0.85) - 0.35]; band.bottom = band.bottom || 0.85; band.swim = band.swim || [band.bottom - 0.3, band.bottom - 0.05]; band.surface = band.surface !== undefined ? band.surface : band.bottom - 0.3; }
-  else if (def.kind === 'all') { band.sky = band.sky || [0.05, (band.surface || 0.5) - 0.05]; band.surface = band.surface !== undefined ? band.surface : 0.5; band.bottom = band.bottom || 0.86; band.swim = band.swim || [band.surface + 0.04, band.bottom - 0.06]; }
+  else if (def.kind === 'all') { band.sky = band.sky || [0.05, (band.surface || 0.5) - 0.05]; band.surface = band.surface !== undefined ? band.surface : 0.5; band.bottom = band.bottom || 0.86; band.swim = band.swim || [band.surface + 0.04, band.bottom - 0.06]; band.plane = [band.surface + 0.02, band.bottom - 0.04]; }
   else { band.swim = band.swim || [0.12, 0.75]; band.bottom = band.bottom || 0.86; }
   CUSTOM[id] = { name: def.name || '내 무대', kind: def.kind, band: band, rule: kindToRule(def.kind), img: img, desc: def.desc || '',
     draw: function (t) {
@@ -172,7 +172,7 @@ function homeY(sp, motion) {
     case 'walk':
     case 'sink':   return H*b.bottom - hh;
     case 'paddle':
-    case 'float':  return H*b.surface;
+    case 'float':  return b.plane ? H*(b.plane[0] + Math.random()*(b.plane[1]-b.plane[0])) : H*b.surface;
     case 'fly':    return H*((b.sky||b.swim)[0] + Math.random()*((b.sky||b.swim)[1]-(b.sky||b.swim)[0]));
     case 'drift':  return H*(b.swim[0] + Math.random()*(b.swim[1]-b.swim[0]));
     default:       return H*0.5;
@@ -610,9 +610,10 @@ function manualMove(sp, t, dt) {
   var m = sp.manual; if (!m || performance.now() > m.until) { sp.manual = null; return false; }
   var b = cur().band, mo = sp.motion, hh = halfH(sp), sp2 = 170;
   if (m.dx) { sp.dir = m.dx > 0 ? 1 : -1; sp.x += m.dx*sp2*dt; }
-  var yOk = !(mo === 'walk' || mo === 'crawl' || mo === 'sink' || mo === 'ride' || mo === 'float' || mo === 'paddle' || mo === 'fin');   // 땅·수면 위 것은 좌우만
+  var onPlane = (mo === 'float' || mo === 'paddle') && b.plane;
+  var yOk = onPlane || !(mo === 'walk' || mo === 'crawl' || mo === 'sink' || mo === 'ride' || mo === 'float' || mo === 'paddle' || mo === 'fin');   // 땅·한 줄 수면 위 것은 좌우만
   if (m.dy && yOk) { sp.y += m.dy*sp2*dt; sp.ty = sp.y; }
-  var zone = (mo === 'fly') ? (b.sky || b.swim) : b.swim;
+  var zone = onPlane ? b.plane : (mo === 'fly') ? (b.sky || b.swim) : b.swim;
   if (yOk && zone) { sp.y = Math.max(H*zone[0], Math.min(H*zone[1], sp.y)); sp.ty = sp.y; }
   sp.x = Math.max(-sp.w*sp.depth/2, Math.min(W + sp.w*sp.depth/2, sp.x));
   if (mo === 'walk' && m.dy < 0 && sp.jumpT === undefined) sp.jumpT = t;          // 걷는 것은 ↑ 로 폴짝
@@ -703,6 +704,11 @@ function roam(sp, t, dt) {
     sp.ty += Math.sin(t*1.1 + sp.ph)*0.6;
     sp.ty = Math.max(H*sk[0], Math.min(H*sk[1], sp.ty));
     sp.rot = sp.dir*Math.sin(t*1.1 + sp.ph)*0.08;
+  } else if ((mo === 'paddle' || mo === 'float') && b.plane) {        // 비스듬한 수면: 위아래로도 천천히 다닌다
+    sp.ty += Math.sin(t*0.5 + sp.ph)*0.3;
+    if (Math.random() < 0.002) sp.ty = H*(b.plane[0] + Math.random()*(b.plane[1]-b.plane[0]));
+    sp.ty = Math.max(H*b.plane[0], Math.min(H*b.plane[1], sp.ty));
+    sp.rot += (Math.sin(t*1.3 + sp.ph)*0.06 - sp.rot)*0.1;
   } else if (mo === 'paddle' || mo === 'float') {
     sp.ty = H*b.surface + Math.sin(t*1.3 + sp.ph)*4 - (mo === 'paddle' ? hh*0.2 : hh*0.1);
     sp.rot += (Math.sin(t*1.3 + sp.ph)*0.06 - sp.rot)*0.1;

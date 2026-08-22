@@ -16,7 +16,7 @@
 
 /* ===== 설정 ===== */
 var APP_VERSION  = 'stage-v1';
-var TEACHER_KEY  = 'q1w2Q!W@';          // 강사 페이지가 보내는 열쇠. gate.js 암호와 같게 둔다
+var TEACHER_KEY  = '1234567';          // 강사 페이지가 보내는 열쇠. gate.js 암호와 같게 둔다
 var SHEET_ID     = '';                  // 비우면 자동 생성
 var SHEET_NAME   = 'items';
 var FOLDER_NAME  = 'sketch_stage';      // Drive 폴더 (그림·배경 파일)

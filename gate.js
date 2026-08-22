@@ -2,7 +2,7 @@
    암호 바꾸기: 아래 HASH 를 새 암호의 SHA-256 으로 교체.
    python3 -c "import hashlib;print(hashlib.sha256('새암호'.encode()).hexdigest())" */
 (function () {
-  var HASH = '3b80e40af4fe01612be6b70d750accab80974c91e6d9a347f816920a6f1ed375';
+  var HASH = '8bb0cf6eb9b17d0f7d22b456f121257dc1254e1f01665370476383ea776df414';
   var KEY = 'stageGateOk';
   /* 암호 통과 뒤에 할 일은 window.gateReady.then(...) 으로 기다린다 (서버 연결 등) */
   var resolveGate; window.gateReady = new Promise(function (res) { resolveGate = res; });

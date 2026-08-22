@@ -2,7 +2,7 @@
 import json, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 ITEMS = []; CMDS = []; SEQ = [0]; ALLOW = {"draw": False, "photo": False, "ai": False, "raw": False, "world": False, "gallery": False}; NICKS = {}
-KEY = 'q1w2Q!W@'
+KEY = '1234567'
 def push(cmd):
     SEQ[0] += 1; cmd = dict(cmd); cmd['seq'] = SEQ[0]; CMDS.append(cmd); return SEQ[0]
 def find(i):

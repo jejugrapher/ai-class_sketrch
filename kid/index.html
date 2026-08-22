@@ -749,7 +749,7 @@ StageRT.init('kid').then(function (mode) {
   StageRT.onReq(function (r, key) {
     if (r.type !== 'ssireum' || myItems().indexOf(r.to) < 0 || key === lastKey) return; lastKey = key;
     var ban = document.getElementById('askBanner'); document.getElementById('askText').textContent = (r.fromSeat ? r.fromSeat + '번 ' : '') + (r.fromNick || '친구') + '가 씨름을 신청했어요!'; ban.classList.add('on');
-    document.getElementById('askYes').onclick = function () { ban.classList.remove('on'); matchKey = StageRT.createMatch({ a: r.from, b: r.to, status: 'go', score: {} }); myDuelId = r.to; openDuel(r.fromNick || '친구', nick); };
+    document.getElementById('askYes').onclick = function () { ban.classList.remove('on'); var k = 'k_' + key; StageRT.createMatchOnce(k, { a: r.from, b: r.to, status: 'go', score: {} }); matchKey = k; myDuelId = r.to; openDuel(r.fromNick || '친구', nick); };
     document.getElementById('askNo').onclick = function () { ban.classList.remove('on'); StageRT.sendReq({ type: 'no', from: r.to, to: r.from }); };
     setTimeout(function () { ban.classList.remove('on'); }, 20000);
   });
